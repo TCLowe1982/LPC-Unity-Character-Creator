@@ -18,3 +18,8 @@ Thumbs.db
 
 # Beads/Dolt local DB internals are tracked via .beads/*.jsonl, ignore the rest if present
 .beads/dolt/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

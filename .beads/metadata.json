@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "LPC_Unity_Character_Creator",
+  "project_id": "eba8808d-4113-457c-84ea-c020fa10f7b4"
+}
