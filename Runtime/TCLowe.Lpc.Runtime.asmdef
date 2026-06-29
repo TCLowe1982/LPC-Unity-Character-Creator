@@ -1,0 +1,14 @@
+{
+    "name": "TCLowe.Lpc.Runtime",
+    "rootNamespace": "Lpc",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

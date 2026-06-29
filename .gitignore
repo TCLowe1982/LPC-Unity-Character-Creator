@@ -1,0 +1,20 @@
+# This repo IS a Unity package (not a Unity project), so .meta files MUST be committed.
+# Ignore only OS/editor cruft and any local test-host artifacts.
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# If a test Unity project is ever nested here, ignore its generated folders
+**/Library/
+**/Temp/
+**/Obj/
+**/Logs/
+**/UserSettings/
+*.csproj
+*.sln
+
+# Beads/Dolt local DB internals are tracked via .beads/*.jsonl, ignore the rest if present
+.beads/dolt/

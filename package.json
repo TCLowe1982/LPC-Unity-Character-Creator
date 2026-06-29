@@ -1,0 +1,20 @@
+{
+  "name": "com.tclowe.lpc-character-creator",
+  "version": "0.1.0",
+  "displayName": "LPC Unity Character Creator",
+  "description": "Use Liberated Pixel Cup (LPC) layered character art in Unity. Selective importer (manifest + auto-slicing AssetPostprocessor), runtime layered animated characters with live equip/swap, and palette recolor. Point it at a local clone of the LPC Spritesheet Character Generator; OpenGameArt scraping for missing assets is planned. NOTE: LPC art is CC-BY-SA/GPL/OGA-BY and is NOT bundled - you supply it and must credit the artists (the importer emits an attribution file).",
+  "unity": "2022.3",
+  "author": {
+    "name": "TC Lowe"
+  },
+  "keywords": [
+    "lpc",
+    "2d",
+    "character",
+    "spritesheet",
+    "animation",
+    "liberated pixel cup",
+    "character creator"
+  ],
+  "license": "MIT"
+}
