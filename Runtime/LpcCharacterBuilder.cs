@@ -44,12 +44,12 @@ namespace Lpc
                 go.transform.localScale = Vector3.one;
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sortingOrder = baseSortingOrder + i;
-                if (set.frames != null && set.frames.Length > 18) sr.sprite = set.frames[18];
-                built[i] = new LpcCharacter.Layer { name = set.slot, zOrder = set.zOrder, renderer = sr, frames = set.frames };
+                built[i] = new LpcCharacter.Layer { name = set.slot, zOrder = set.zOrder, renderer = sr, clips = set.clips, frames = set.frames };
             }
 
             lpc.layers = built;
             lpc.baseSortingOrder = baseSortingOrder;
+            lpc.Play(LpcClips.Walk);
             lpc.SetPose(2, 0); // face down, standing
             return lpc;
         }

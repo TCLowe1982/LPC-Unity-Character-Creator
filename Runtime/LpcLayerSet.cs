@@ -3,9 +3,14 @@ using UnityEngine;
 namespace Lpc
 {
     /// <summary>
-    /// One swappable appearance/equipment layer: a slot, a draw order, and the 36 LPC
-    /// walk frames (index = direction*9 + frame). Body, head, hair, pants, a sword, a
-    /// hat... are all just LpcLayerSets. A character is an ordered collection of these.
+    /// One swappable appearance/equipment layer: a slot, a draw order, and its animation
+    /// frames. Body, head, hair, pants, a sword, a hat... are all just LpcLayerSets, and a
+    /// character is an ordered collection of these.
+    ///
+    /// Frames are stored per-animation in <see cref="clips"/> (each clip indexed
+    /// <c>dir * framesPerDir + frame</c>). The legacy <see cref="frames"/> array holds just
+    /// the walk sheet for assets imported before per-animation slicing (2g8.8); the runtime
+    /// treats it as the "walk" clip. Use <see cref="FramesFor"/> to resolve either source.
     /// </summary>
     [CreateAssetMenu(fileName = "LpcLayer", menuName = "LPC/Layer Set")]
     public class LpcLayerSet : ScriptableObject
@@ -16,7 +21,14 @@ namespace Lpc
         [Tooltip("Draw order within a character; higher renders in front (hair > head > body).")]
         public int zOrder = 0;
 
-        [Tooltip("36 sprites = 9 walk frames x 4 directions (index = dir*9 + frame).")]
+        [Tooltip("Per-animation frames. Each clip indexes dir*framesPerDir + frame.")]
+        public LpcClipFrames[] clips;
+
+        [Tooltip("Legacy walk-only sheet (36 = 9 frames x 4 dirs). Used as the 'walk' clip " +
+                 "when clips is empty; superseded by per-animation slicing (2g8.8).")]
         public Sprite[] frames;
+
+        /// <summary>Frames for the named clip, or null if this layer doesn't animate it.</summary>
+        public Sprite[] FramesFor(string clip) => LpcClipFrames.Resolve(clips, frames, clip);
     }
 }
