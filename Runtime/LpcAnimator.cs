@@ -76,7 +76,7 @@ namespace Lpc
             {
                 t += dt * active.fps * speedScale;
                 int fr = Mathf.FloorToInt(t);
-                if (fr < active.framesPerDir) { character.SetPose(dir, fr); return; }
+                if (!LpcClipMath.OneShotComplete(active.framesPerDir, fr)) { character.SetPose(dir, fr); return; }
                 // one-shot finished: chain the queue, else fall back to locomotion this frame
                 if (queue.Count > 0) { SetActive(queue.Dequeue(), true); character.SetPose(dir, 0); return; }
                 oneShot = false;
@@ -87,14 +87,13 @@ namespace Lpc
             {
                 SetActive(walkClip, false);
                 t += dt * active.fps * speedScale;
-                int n = Mathf.Max(1, active.framesPerDir - 1);   // skip standing frame 0
-                character.SetPose(dir, 1 + (Mathf.FloorToInt(t) % n));
+                character.SetPose(dir, LpcClipMath.CycleFrame(active.framesPerDir, Mathf.FloorToInt(t)));
             }
             else if (!moving && character.HasClip(idleClip.name))
             {
                 SetActive(idleClip, false);
                 t += dt * active.fps * speedScale;
-                character.SetPose(dir, Mathf.FloorToInt(t) % Mathf.Max(1, active.framesPerDir));
+                character.SetPose(dir, LpcClipMath.LoopFrame(active.framesPerDir, Mathf.FloorToInt(t)));
             }
             else
             {

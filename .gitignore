@@ -23,3 +23,12 @@ Thumbs.db
 .dolt/
 *.db
 .beads-credential-key
+
+# Offline test bridge: Tests~ is hidden from Unity by the trailing '~'. Track its sources
+# (the *~ and *.csproj rules above would otherwise drop them); bin/ and obj/ stay ignored
+# via Tests~/.gitignore.
+!Tests~/
+!Tests~/**/*.cs
+!Tests~/**/*.csproj
+!Tests~/**/*.md
+!Tests~/.gitignore

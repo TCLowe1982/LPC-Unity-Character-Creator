@@ -80,10 +80,7 @@ namespace Lpc
         /// <summary>Set every layer to the same pose within the active clip, and remember it.</summary>
         public void SetPose(int dir, int frame)
         {
-            int dirs = Mathf.Max(1, curClip.directions);
-            curDir = Mathf.Clamp(dir, 0, dirs - 1);
-            curFrame = Mathf.Clamp(frame, 0, Mathf.Max(0, curClip.framesPerDir - 1));
-            int i = curDir * curClip.framesPerDir + curFrame;
+            int i = LpcClipMath.PoseIndex(curClip, dir, frame, out curDir, out curFrame);
             if (layers == null) return;
             foreach (var L in layers)
             {

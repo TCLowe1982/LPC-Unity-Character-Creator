@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Offline test bridge. Runs the SHARED NUnit tests in Tests/ without the Unity editor by
+    linking the pure runtime logic and a tiny UnityEngine shim (Shim/UnityEngine.cs).
+    Same test files are compiled by the Unity EditMode asmdef (TCLowe.Lpc.EditMode.Tests).
+    NUnit is pinned to 3.x to match Unity's bundled test framework so classic asserts
+    (Assert.AreEqual, Assert.AreSame, ...) compile in both places.
+
+    Run:  dotnet test  (from this folder)
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- Default globbing picks up Shim/UnityEngine.cs in this dir; sources/tests are linked below. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Pure runtime logic under test: linked (single source of truth, not copied). -->
+    <Compile Include="..\Runtime\LpcClip.cs"     Link="Runtime\LpcClip.cs" />
+    <Compile Include="..\Runtime\LpcClipMath.cs" Link="Runtime\LpcClipMath.cs" />
+    <!-- Shared NUnit tests, also compiled by the Unity EditMode asmdef. -->
+    <Compile Include="..\Tests\*.cs" Link="Tests\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>
