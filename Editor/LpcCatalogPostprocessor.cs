@@ -37,6 +37,7 @@ namespace Lpc.Editor
             ti.textureCompression = TextureImporterCompression.Uncompressed;
             ti.mipmapEnabled = false;
             ti.alphaIsTransparency = true;
+            ti.isReadable = true;   // runtime recolor (2g8.4) samples these via GetPixels32
 
             if (!ReadPngSize(assetPath, out int w, out int h)) return;
             int cols = Mathf.Max(1, w / FrameSize);

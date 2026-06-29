@@ -71,6 +71,23 @@ namespace Lpc
             SetPose(curDir, curFrame);
         }
 
+        /// <summary>
+        /// Replace just the frames of an existing slot (e.g. a recolored copy) without
+        /// rebuilding the layer. Pose is preserved. No-op if the slot isn't present.
+        /// </summary>
+        public bool SetLayerFrames(string slot, Sprite[] frames)
+        {
+            if (layers == null) return false;
+            foreach (var L in layers)
+                if (L != null && L.name == slot)
+                {
+                    L.frames = frames;
+                    SetPose(curDir, curFrame);
+                    return true;
+                }
+            return false;
+        }
+
         /// <summary>Remove the layer occupying the given slot (unequip), if present.</summary>
         public void RemoveLayer(string slot)
         {
