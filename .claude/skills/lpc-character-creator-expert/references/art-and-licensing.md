@@ -22,7 +22,11 @@ oversize weapon sheets (128/192px) are handled by deriving the cell size, not en
 feet, dress, torso, arms, neck, shoulders, head, eyes, facial, beards, hair, hat, tools, weapon, shield.
 `DefaultZ` is the default; a `sheet_definition`'s zPos overrides it via the manifest entry's `zPos`.
 Multi-layer parts = several entries on one slot at different z (the runtime orders any z, so multi-layer
-and behind-body work with no runtime change). Per-direction z (cape flip) is deferred (2g8.15).
+and behind-body work with no runtime change). The importer reads each part's real zPos from the LPC
+`sheet_definitions/*.json` (`LpcSheetDefParser` → `LpcSheetDefIndex`, source→zPos; priority: explicit
+manifest `zPos` > sheet_def zPos > `LpcCategory.DefaultZ`). **There is no per-direction z in LPC** — the
+"cape behind one way, in front the other" effect is two layers (`cape_solid.json`: `layer_1` fg zPos 85,
+`layer_2` bg zPos 5, vs body 10) with baked per-direction art, which the multi-layer support handles.
 
 ## Body types
 

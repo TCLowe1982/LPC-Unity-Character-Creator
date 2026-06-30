@@ -101,6 +101,7 @@ namespace Lpc.Editor
             Directory.CreateDirectory(dest);
 
             var index = new Index { bodyType = man.bodyType };
+            var zIndex = LpcSheetDefIndex.BuildZIndex(src);   // source -> zPos from sheet_definitions
             var credits = new List<LpcCreditEntry>();
             var creditedSources = new HashSet<string>();
             LpcCreditsReader.ResetCache();
@@ -117,7 +118,10 @@ namespace Lpc.Editor
                 string baseId = Sanitize(e.source);
                 string slotDir = dest + "/" + e.slot;
                 Directory.CreateDirectory(slotDir);
-                int z = (e.zPos != int.MinValue) ? e.zPos : LpcCategory.DefaultZ(e.slot);
+                // draw order: explicit entry zPos > sheet_definition zPos > category default
+                string srcKey = e.source.Replace('\\', '/').Trim().TrimEnd('/');
+                int z = (e.zPos != int.MinValue) ? e.zPos
+                      : (zIndex.TryGetValue(srcKey, out var defZ) ? defZ : LpcCategory.DefaultZ(e.slot));
 
                 // LPC draws each part per body type in a <bodytype>/ subfolder. Import every
                 // requested body type that has a subfolder; if none do, the source is already
