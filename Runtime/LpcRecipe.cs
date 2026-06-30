@@ -10,6 +10,12 @@ namespace Lpc
     [CreateAssetMenu(fileName = "LpcRecipe", menuName = "LPC/Recipe")]
     public class LpcRecipe : ScriptableObject
     {
+        [Tooltip("Body type to build: male/female/muscular/child/skeleton... Each layer is " +
+                 "resolved to its matching body-type variant (with fallback) at build time.")]
+        public string bodyType = LpcBodyType.Male;
+
+        [Tooltip("Layer pool. May include several body-type variants of the same slot; the " +
+                 "builder picks the one matching bodyType per slot.")]
         public LpcLayerSet[] layers;
     }
 }

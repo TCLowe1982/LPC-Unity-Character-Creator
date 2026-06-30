@@ -137,6 +137,7 @@ namespace Lpc.Editor
                 if (isNew) ls = ScriptableObject.CreateInstance<LpcLayerSet>();
 
                 ls.slot = e.slot;
+                ls.bodyType = string.IsNullOrEmpty(e.bodyType) ? LpcBodyType.Male : e.bodyType;
                 ls.zOrder = e.zOrder;
                 ls.clips = clips.ToArray();
                 ls.frames = walkFrames ?? clips[0].frames;   // legacy/back-compat: walk if present, else first

@@ -18,6 +18,10 @@ namespace Lpc
         [Tooltip("Logical slot, e.g. body / head / hair / torso / legs / feet / weapon / hat.")]
         public string slot = "body";
 
+        [Tooltip("Body type this sheet is drawn for: male/female/muscular/child/skeleton... " +
+                 "A part has one LpcLayerSet per body type it supports.")]
+        public string bodyType = LpcBodyType.Male;
+
         [Tooltip("Draw order within a character; higher renders in front (hair > head > body).")]
         public int zOrder = 0;
 

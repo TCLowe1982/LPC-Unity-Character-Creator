@@ -41,7 +41,8 @@ namespace Lpc.Editor
         {
             public string lpcSourcePath;   // local LPC generator clone (contains spritesheets/)
             public string destFolder;      // project-relative, e.g. Assets/Characters/LPC/Catalog
-            public string bodyType;        // male/female/muscular/teen/child/... (informational here)
+            public string bodyType;        // legacy single body type (used when bodyTypes is empty)
+            public string[] bodyTypes;     // body types to import, e.g. ["male","female","child"]
             public string[] animations;    // walk-first; default ["walk"]
             public Entry[] entries;        // selection: slot + source path under spritesheets/
         }
@@ -51,6 +52,7 @@ namespace Lpc.Editor
         {
             public string slot;
             public string id;
+            public string bodyType;        // body type this variant is drawn for
             public int zOrder;
             public string source;
             public string[] animations;
@@ -82,6 +84,8 @@ namespace Lpc.Editor
             { Debug.LogError($"[LPC] LPC source not found (expected spritesheets/ here): {spritesheets}"); return; }
 
             var anims = (man.animations != null && man.animations.Length > 0) ? man.animations : new[] { "walk" };
+            var bodyTypes = (man.bodyTypes != null && man.bodyTypes.Length > 0) ? man.bodyTypes
+                          : new[] { LpcBodyType.Normalize(man.bodyType) };
             string dest = (man.destFolder ?? "Assets/Characters/LPC/Catalog").Replace("\\", "/").TrimEnd('/');
             Directory.CreateDirectory(dest);
 
@@ -96,27 +100,41 @@ namespace Lpc.Editor
                 string srcDir = spritesheets + "/" + e.source.Trim('/');
                 if (!Directory.Exists(srcDir)) { Debug.LogWarning($"[LPC] Source dir missing: {e.source}"); missing++; continue; }
 
-                string id = Sanitize(e.source);
+                string baseId = Sanitize(e.source);
                 string slotDir = dest + "/" + e.slot;
                 Directory.CreateDirectory(slotDir);
                 int z = SlotZ.TryGetValue(e.slot, out var zz) ? zz : 100;
 
-                var files = new List<string>();
-                var usedAnims = new List<string>();
-                foreach (var a in anims)
-                {
-                    string sp = srcDir + "/" + a + ".png";
-                    if (!File.Exists(sp)) { missing++; continue; }
-                    // walk -> "<id>.png"; other anims -> "<id>__<anim>.png" (one layer asset per anim, 2g8.8 will unify)
-                    string fileName = (a == "walk") ? id + ".png" : id + "__" + a + ".png";
-                    string dp = slotDir + "/" + fileName;
-                    File.Copy(sp, dp, true);
-                    files.Add(dp); usedAnims.Add(a); copied++;
-                }
-                if (files.Count == 0) { Debug.LogWarning($"[LPC] No listed animations found for {e.source}"); continue; }
+                // LPC draws each part per body type in a <bodytype>/ subfolder. Import every
+                // requested body type that has a subfolder; if none do, the source is already
+                // body-resolved (legacy) and we import it once tagged with the manifest's type.
+                var present = new List<string>();
+                foreach (var bt in bodyTypes) if (Directory.Exists(srcDir + "/" + bt)) present.Add(bt);
+                bool legacy = present.Count == 0;
+                var variants = legacy ? new List<string> { LpcBodyType.Normalize(man.bodyType) } : present;
 
-                index.entries.Add(new IndexEntry { slot = e.slot, id = id, zOrder = z, source = e.source, animations = usedAnims.ToArray(), files = files.ToArray() });
-                usedParts.Add($"{e.slot,-8} {e.source}");
+                foreach (var bt in variants)
+                {
+                    string useDir = legacy ? srcDir : srcDir + "/" + bt;
+                    string vid = legacy ? baseId : baseId + "_" + bt;
+
+                    var files = new List<string>();
+                    var usedAnims = new List<string>();
+                    foreach (var a in anims)
+                    {
+                        string sp = useDir + "/" + a + ".png";
+                        if (!File.Exists(sp)) { missing++; continue; }
+                        // walk -> "<vid>.png"; other anims -> "<vid>__<anim>.png" (vid carries the body type)
+                        string fileName = (a == "walk") ? vid + ".png" : vid + "__" + a + ".png";
+                        string dp = slotDir + "/" + fileName;
+                        File.Copy(sp, dp, true);
+                        files.Add(dp); usedAnims.Add(a); copied++;
+                    }
+                    if (files.Count == 0) { Debug.LogWarning($"[LPC] No listed animations found for {e.source} [{bt}]"); continue; }
+
+                    index.entries.Add(new IndexEntry { slot = e.slot, id = vid, bodyType = bt, zOrder = z, source = e.source, animations = usedAnims.ToArray(), files = files.ToArray() });
+                    usedParts.Add($"{e.slot,-8} {e.source} [{bt}]");
+                }
             }
 
             File.WriteAllText(dest + "/catalog_index.json", JsonUtility.ToJson(index, true));
