@@ -38,18 +38,29 @@ namespace Lpc
         float t; // elapsed time, in frames, within the active clip
         readonly Queue<LpcClip> queue = new Queue<LpcClip>();
 
-        void Awake()
+        void Awake() => EnsureInit();
+
+        /// <summary>
+        /// Resolve dependencies and seed the clip state. Safe to call repeatedly and from a
+        /// non-play context (e.g. EditMode tests, where Awake never fires), so the animator is
+        /// usable the moment it's ticked rather than only after the play-mode lifecycle.
+        /// </summary>
+        void EnsureInit()
         {
-            character = GetComponent<LpcCharacter>();
-            motion = GetComponentInParent<ILpcMotion>();
-            walkClip = LpcClips.Get(walkClipName);
-            idleClip = LpcClips.Get(idleClipName);
-            active = walkClip;
+            if (character == null) character = GetComponent<LpcCharacter>();
+            if (motion == null) motion = GetComponentInParent<ILpcMotion>();
+            if (!active.IsValid)
+            {
+                walkClip = LpcClips.Get(walkClipName);
+                idleClip = LpcClips.Get(idleClipName);
+                active = walkClip;
+            }
         }
 
         /// <summary>Trigger a one-shot animation now (or queue it behind the current one-shot).</summary>
         public void PlayOnce(LpcClip clip, bool queueIt = false)
         {
+            EnsureInit();
             if (!clip.IsValid || character == null || !character.HasClip(clip.name)) return;
             if (queueIt && oneShot) { queue.Enqueue(clip); return; }
             queue.Clear();
@@ -61,16 +72,21 @@ namespace Lpc
         /// <summary>Abort any one-shot (and its queue) and return to locomotion.</summary>
         public void Stop() { queue.Clear(); oneShot = false; }
 
-        void Update()
+        void Update() => Tick(Time.deltaTime);
+
+        /// <summary>
+        /// Advance the animation by <paramref name="dt"/> seconds and apply the resulting pose.
+        /// Update calls this with Time.deltaTime; tests call it with fixed steps to drive the
+        /// pathway deterministically (no play loop or wall-clock needed).
+        /// </summary>
+        public void Tick(float dt)
         {
-            if (character == null) character = GetComponent<LpcCharacter>();
+            EnsureInit();
             if (character == null) return; // built at runtime by the spawner/builder
-            if (motion == null) motion = GetComponentInParent<ILpcMotion>();
 
             Vector2Int f = motion != null ? motion.Facing : facing;
             bool moving = motion != null ? motion.Walking : walking;
             int dir = DirRow(f);
-            float dt = Time.deltaTime;
 
             if (oneShot)
             {
