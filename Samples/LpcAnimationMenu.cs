@@ -18,8 +18,8 @@ namespace Lpc.Samples
         [Tooltip("Character whose available clips drive the menu. Defaults to the player's character.")]
         public LpcCharacter character;
 
-        public float buttonHeight = 26f;
-        public int fontSize = 14;
+        public float buttonHeight = 40f;
+        public int fontSize = 20;
         public Color buttonColor = new Color(0.18f, 0.18f, 0.22f, 0.95f);
 
         void Start()

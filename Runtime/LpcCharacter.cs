@@ -86,7 +86,9 @@ namespace Lpc
             {
                 if (L == null || L.renderer == null) continue;
                 var f = L.Activate(curClip.name);
-                if (f != null && i >= 0 && i < f.Length) L.renderer.sprite = f[i];
+                // A layer with no frames for this clip (e.g. a shirt that has no jump sheet)
+                // hides instead of showing a stale pose from the previous clip.
+                L.renderer.sprite = (f != null && i >= 0 && i < f.Length) ? f[i] : null;
             }
         }
 

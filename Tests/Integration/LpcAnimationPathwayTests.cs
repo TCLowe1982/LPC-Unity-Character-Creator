@@ -121,6 +121,42 @@ namespace Lpc.Tests.Integration
         }
 
         [Test]
+        public void LayerMissingClip_HidesThatLayerInsteadOfShowingStalePose()
+        {
+            // body has walk + jump; torso (a shirt) has only walk — like a formal shirt with no jump sheet
+            var body = ScriptableObject.CreateInstance<LpcLayerSet>(); temp.Add(body);
+            body.slot = "body"; body.zOrder = 0;
+            var bodyWalk = MakeFrames(36, "bodywalk");
+            body.frames = bodyWalk;
+            body.clips = new[]
+            {
+                new LpcClipFrames { clip = "walk", frames = bodyWalk },
+                new LpcClipFrames { clip = "jump", frames = MakeFrames(20, "bodyjump") }, // 5x4
+            };
+
+            var torso = ScriptableObject.CreateInstance<LpcLayerSet>(); temp.Add(torso);
+            torso.slot = "torso"; torso.zOrder = 40;
+            var torsoWalk = MakeFrames(36, "torsowalk");
+            torso.frames = torsoWalk;
+            torso.clips = new[] { new LpcClipFrames { clip = "walk", frames = torsoWalk } }; // no jump
+
+            var recipe = ScriptableObject.CreateInstance<LpcRecipe>(); temp.Add(recipe);
+            recipe.layers = new[] { body, torso };
+            go = new GameObject("LPC_TEST");
+            var c = LpcCharacterBuilder.Build(recipe, go);
+
+            SpriteRenderer bodySr = null, torsoSr = null;
+            foreach (var L in c.layers) { if (L.name == "body") bodySr = L.renderer; if (L.name == "torso") torsoSr = L.renderer; }
+
+            c.Play(LpcClips.Walk); c.SetPose(2, 1);
+            Assert.IsNotNull(bodySr.sprite); Assert.IsNotNull(torsoSr.sprite, "both visible while walking");
+
+            c.Play(LpcClips.Get("jump")); c.SetPose(2, 2);
+            Assert.IsNotNull(bodySr.sprite, "body has jump frames");
+            Assert.IsNull(torsoSr.sprite, "torso lacks jump -> hidden, not a stale walk frame");
+        }
+
+        [Test]
         public void StopWalking_ReturnsToStandingPose()
         {
             var body = MakeBody();
