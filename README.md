@@ -4,11 +4,12 @@ Use **Liberated Pixel Cup (LPC)** layered character art in Unity — import only
 need, build animated characters at runtime from stacked layers, swap equipment/appearance
 live, and recolor via palettes.
 
-> **You supply the art.** LPC sprites are licensed **CC-BY-SA 3.0 / GPL 3.0 / OGA-BY 3.0**
-> and are **not** bundled with this package. Point it at a local clone of the
-> [LPC Spritesheet Character Generator](https://github.com/liberatedpixelcup/Universal-LPC-Spritesheet-Character-Generator),
-> and **credit the artists** for whatever layers you use. The importer generates an
-> attribution file for the layers in your manifest.
+> **Art is bundled — one-click import.** The full LPC art set (144,699 PNGs, all 15
+> animations × 4 directions) ships as a GitHub **Release** artifact (too large for git), and
+> `Tools/LPC → Import Bundled Art` downloads + extracts it. LPC sprites are
+> **CC-BY-SA 3.0 / GPL 3.0 / OGA-BY 3.0** — you must **credit the artists** (per-file
+> attribution is in the bundled `CREDITS.csv`; see `LICENSE-ART.txt`). Package **code** is MIT.
+> You can still point at your own local LPC clone instead.
 
 ## What's in the box
 
@@ -28,6 +29,25 @@ The full LPC package is tens of thousands of files (≈20 animations × hundreds
 variants). Dumping it all into Unity chokes the import pipeline. This package imports
 **only the layers in your manifest, walk-only** — so it stays trivial, and adding an option
 is a one-line edit.
+
+## Art bundle (drop-in)
+
+The whole LPC spritesheet tree is **≈483 MB / 144,699 files** — too much for a git repo — so
+it's distributed as a GitHub **Release** artifact (`LpcArt-full.zip`, ~212 MB) and pulled on
+demand:
+
+1. **`Tools/LPC → Import Bundled Art`** downloads the Release zip and extracts it to
+   `LpcArtSource/` **outside `Assets/`** (so Unity doesn't try to import 144k textures), and
+   points the catalog manifest at it.
+2. **`Tools/LPC → Import Starter Catalog`** (or your own manifest) then slices **only the
+   parts you select** into `Assets/Characters/LPC/Catalog/` — keeping your project lean.
+
+Attribution travels with the art: `CREDITS.csv` (per-file authors / licenses / URLs) and
+`LICENSE-ART.txt` are inside the zip. Maintainers rebuild the artifact with
+`tools/Build_Art_Release.ps1`.
+
+> The Release download is public only when the **repository is public**. On a private repo
+> the unauthenticated importer download will 404.
 
 ## Install
 

@@ -1,0 +1,31 @@
+LPC CHARACTER ART — LICENSES & ATTRIBUTION
+================================================================================
+
+The character art bundled by this package (the "LPC art": sprite sheets under
+spritesheets/, distributed via the GitHub Release artifact, NOT in this git repo)
+comes from the Liberated Pixel Cup (LPC) / Universal LPC Spritesheet Generator.
+
+It is multi-licensed. Unless a specific asset says otherwise in CREDITS.csv, you
+may use it under ANY of:
+
+  * CC-BY-SA 3.0   https://creativecommons.org/licenses/by-sa/3.0/
+  * GPL 3.0        https://www.gnu.org/licenses/gpl-3.0.html
+  * OGA-BY 3.0     https://static.opengameart.org/OGA-BY-3.0.txt
+
+All of these permit use in any project, including commercial ones. In return you
+MUST:
+
+  1. CREDIT the original artists. Per-asset authors, licenses, and source URLs
+     are in CREDITS.csv (shipped alongside the art). Reproduce the relevant
+     entries in your game's credits.
+  2. SHARE-ALIKE where required: CC-BY-SA and GPL are copyleft — if you
+     redistribute the art (or modified art), it stays under the same license.
+
+This LICENSE applies to the ART ONLY. The package CODE (everything under
+Runtime/, Editor/, Samples/) is MIT — see LICENSE.
+
+Attribution detail: CREDITS.csv (canonical, per file) and the generated CREDITS.md
+in the Release artifact.
+
+Source: https://github.com/sanderfrenken/Universal-LPC-Spritesheet-Character-Generator
+LPC:    https://lpc.opengameart.org/
