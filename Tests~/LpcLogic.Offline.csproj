@@ -27,8 +27,9 @@
 
   <ItemGroup>
     <!-- Pure runtime logic under test: linked (single source of truth, not copied). -->
-    <Compile Include="..\Runtime\LpcClip.cs"     Link="Runtime\LpcClip.cs" />
-    <Compile Include="..\Runtime\LpcClipMath.cs" Link="Runtime\LpcClipMath.cs" />
+    <Compile Include="..\Runtime\LpcClip.cs"      Link="Runtime\LpcClip.cs" />
+    <Compile Include="..\Runtime\LpcClipMath.cs"  Link="Runtime\LpcClipMath.cs" />
+    <Compile Include="..\Runtime\LpcSliceMath.cs" Link="Runtime\LpcSliceMath.cs" />
     <!-- Shared NUnit tests, also compiled by the Unity EditMode asmdef. -->
     <Compile Include="..\Tests\*.cs" Link="Tests\%(Filename)%(Extension)" />
   </ItemGroup>

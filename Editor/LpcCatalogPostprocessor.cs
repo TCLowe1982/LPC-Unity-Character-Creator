@@ -12,10 +12,13 @@ namespace Lpc.Editor
     /// <see cref="LpcLayerSet"/> asset is generated from catalog_index.json — so a copied
     /// sheet becomes a usable, ordered layer with zero manual setup.
     ///
-    /// Grid is derived from the PNG dimensions (frame size 64), so it is animation-agnostic:
-    /// walk = 9x4 = 36, hurt = 6x1, etc. Frame index = row*cols + col with row 0 = the TOP
-    /// image row, matching the runtime convention (index = direction*framesPerDir + frame,
-    /// rows up/left/down/right). 2g8.8 will extend this to oversize/offset animation sheets.
+    /// Each animation is sliced on its OWN grid (2g8.8): rows = directions and cols =
+    /// framesPerDir come from <see cref="LpcClips"/>, and the cell size is derived from the
+    /// PNG via <see cref="LpcSliceMath"/> so oversize weapon sheets (128/192px) slice
+    /// correctly instead of being mis-cut into 64px tiles. Frame index = dir*cols + frame
+    /// with row 0 = the TOP image row, matching the runtime convention. Every animation found
+    /// for a part is assembled into that part's <see cref="LpcLayerSet.clips"/>, feeding the
+    /// runtime clip system; the walk sheet is also kept in the legacy frames array.
     /// </summary>
     public class LpcCatalogPostprocessor : AssetPostprocessor
     {
@@ -40,26 +43,42 @@ namespace Lpc.Editor
             ti.isReadable = true;   // runtime recolor (2g8.4) samples these via GetPixels32
 
             if (!ReadPngSize(assetPath, out int w, out int h)) return;
-            int cols = Mathf.Max(1, w / FrameSize);
-            int rows = Mathf.Max(1, h / FrameSize);
             string baseName = Path.GetFileNameWithoutExtension(assetPath);
+            string anim = AnimFromBaseName(baseName);
 
-            var metas = new List<SpriteMetaData>(cols * rows);
-            for (int r = 0; r < rows; r++)
-                for (int c = 0; c < cols; c++)
+            // Per-animation grid: rows = directions, cols = framesPerDir from the clip registry.
+            // The cell size is derived from the PNG, so oversize sheets (128/192px weapon swings)
+            // slice on their own larger grid instead of being mis-cut into 64px tiles.
+            int cols, rows;
+            if (LpcClips.TryGet(anim, out var clip)) { cols = clip.framesPerDir; rows = clip.directions; }
+            else { cols = Mathf.Max(1, w / FrameSize); rows = Mathf.Max(1, h / FrameSize); }
+
+            if (!LpcSliceMath.TrySlice(w, h, cols, rows, out var cells, out _, out _))
+            {
+                // PNG doesn't divide evenly by the clip's grid (custom/padded sheet):
+                // fall back to a fixed 64px grid so we still produce usable sprites.
+                cols = Mathf.Max(1, w / FrameSize); rows = Mathf.Max(1, h / FrameSize);
+                cells = LpcSliceMath.Slice(w, h, cols, rows, FrameSize, FrameSize);
+            }
+
+            var metas = new List<SpriteMetaData>(cells.Length);
+            foreach (var cell in cells)
+                metas.Add(new SpriteMetaData
                 {
-                    var m = new SpriteMetaData
-                    {
-                        // Unity texture space has y=0 at the bottom, so the top image row (r=0)
-                        // sits at the highest y. This keeps index = dir*cols + frame.
-                        rect = new Rect(c * FrameSize, h - (r + 1) * FrameSize, FrameSize, FrameSize),
-                        alignment = (int)SpriteAlignment.Custom,
-                        pivot = new Vector2(0.5f, 0f),               // feet: bottom-center
-                        name = baseName + "_" + (r * cols + c)
-                    };
-                    metas.Add(m);
-                }
+                    rect = new Rect(cell.x, cell.y, cell.w, cell.h),
+                    alignment = (int)SpriteAlignment.Custom,
+                    pivot = new Vector2(0.5f, 0f),               // feet: bottom-center (oversize shares the baseline)
+                    name = baseName + "_" + cell.index
+                });
             ti.spritesheet = metas.ToArray();
+        }
+
+        // walk sheet is "<id>.png"; other animations are "<id>__<anim>.png" (see LpcCatalogImporter)
+        static string AnimFromBaseName(string baseName)
+        {
+            if (string.IsNullOrEmpty(baseName)) return "walk";
+            int i = baseName.LastIndexOf("__", System.StringComparison.Ordinal);
+            return (i >= 0 && i + 2 < baseName.Length) ? baseName.Substring(i + 2) : "walk";
         }
 
         // ---- postprocess: build LpcLayerSet assets from catalog_index.json -------------
@@ -98,8 +117,19 @@ namespace Lpc.Editor
             foreach (var e in idx.entries)
             {
                 if (e.files == null || e.files.Length == 0) continue;
-                var sprites = LoadOrderedSprites(e.files[0]);   // walk-first
-                if (sprites.Length == 0) { Debug.LogWarning($"[LPC] No sliced sprites yet for {e.files[0]}"); continue; }
+
+                // Assemble one clip per animation file into the runtime clip system (2g8.8).
+                var clips = new List<LpcClipFrames>();
+                Sprite[] walkFrames = null;
+                for (int i = 0; i < e.files.Length; i++)
+                {
+                    var sprites = LoadOrderedSprites(e.files[i]);
+                    if (sprites.Length == 0) { Debug.LogWarning($"[LPC] No sliced sprites yet for {e.files[i]}"); continue; }
+                    string anim = (e.animations != null && i < e.animations.Length) ? e.animations[i] : "walk";
+                    clips.Add(new LpcClipFrames { clip = anim, frames = sprites });
+                    if (anim == "walk") walkFrames = sprites;
+                }
+                if (clips.Count == 0) continue;
 
                 string assetPath = lsDir + "/" + e.slot + "_" + e.id + ".asset";
                 var ls = AssetDatabase.LoadAssetAtPath<LpcLayerSet>(assetPath);
@@ -108,7 +138,8 @@ namespace Lpc.Editor
 
                 ls.slot = e.slot;
                 ls.zOrder = e.zOrder;
-                ls.frames = sprites;
+                ls.clips = clips.ToArray();
+                ls.frames = walkFrames ?? clips[0].frames;   // legacy/back-compat: walk if present, else first
 
                 if (isNew) { AssetDatabase.CreateAsset(ls, assetPath); made++; }
                 else { EditorUtility.SetDirty(ls); updated++; }
