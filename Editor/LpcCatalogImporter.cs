@@ -16,25 +16,31 @@ namespace Lpc.Editor
     /// so we never dump it — we copy only the manifest's entries, only the listed
     /// animations (walk by default). Adding an option is a one-line manifest edit.
     ///
-    /// Deferred by design: sheet_definitions-driven z-order (2g8.10), full per-part
-    /// credit aggregation (2g8.11), body-type resolution (2g8.9), all 17 animations with
-    /// varying layouts (2g8.7/2g8.8). Here z-order comes from a fixed slot table and
-    /// CREDITS is a stub that lists used parts + the LPC license notice.
+    /// Covers all 21 LPC categories: draw order comes from each entry's zPos (transcribed
+    /// from the part's sheet_definition) or the canonical default for its category
+    /// (<see cref="LpcCategory"/>); multi-layer parts are several entries on one slot, and
+    /// behind-body parts (shadow/backpack/cape/quiver) get negative z. Per-body-type variants
+    /// are resolved (2g8.9) and every animation is sliced per layout (2g8.7/2g8.8).
+    ///
+    /// Deferred by design: full per-part credit aggregation (2g8.11), automatic
+    /// sheet_definitions parsing + per-direction z (2g8.15). CREDITS is still a stub listing
+    /// used parts + the LPC license notice.
     /// </summary>
     public static class LpcCatalogImporter
     {
         const string DefaultManifest = "Assets/Characters/LPC/catalog_manifest.json";
 
-        // Draw order per slot (higher = in front). Matches the existing hand-built recipe.
-        // 2g8.10 will derive this from each sheet_definition's zPos/priority instead.
-        static readonly Dictionary<string, int> SlotZ = new Dictionary<string, int>
+        // An entry's draw order comes from its own zPos when set (transcribed from the part's
+        // sheet_definition), otherwise the canonical default for its category (LpcCategory).
+        // Multi-layer parts (layer_1/layer_2) are expressed as several entries on the same slot
+        // with different zPos. int.MinValue means "unset -> use the category default".
+        [System.Serializable]
+        public class Entry
         {
-            { "body", 0 }, { "legs", 10 }, { "feet", 20 }, { "torso", 30 }, { "arms", 35 },
-            { "head", 40 }, { "facial", 45 }, { "beards", 45 }, { "hair", 50 }, { "hat", 60 },
-            { "shoulders", 55 }, { "cape", 5 }, { "weapon", 70 }, { "shield", 70 }
-        };
-
-        [System.Serializable] public class Entry { public string slot; public string source; }
+            public string slot;
+            public string source;
+            public int zPos = int.MinValue;
+        }
 
         [System.Serializable]
         public class Manifest
@@ -103,7 +109,7 @@ namespace Lpc.Editor
                 string baseId = Sanitize(e.source);
                 string slotDir = dest + "/" + e.slot;
                 Directory.CreateDirectory(slotDir);
-                int z = SlotZ.TryGetValue(e.slot, out var zz) ? zz : 100;
+                int z = (e.zPos != int.MinValue) ? e.zPos : LpcCategory.DefaultZ(e.slot);
 
                 // LPC draws each part per body type in a <bodytype>/ subfolder. Import every
                 // requested body type that has a subfolder; if none do, the source is already
