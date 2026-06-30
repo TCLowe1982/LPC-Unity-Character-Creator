@@ -4,6 +4,7 @@
     "references": [
         "TCLowe.Lpc.Runtime",
         "TCLowe.Lpc.Editor",
+        "TCLowe.Lpc.Samples",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

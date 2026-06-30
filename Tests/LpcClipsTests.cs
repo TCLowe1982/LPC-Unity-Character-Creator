@@ -7,9 +7,19 @@ namespace Lpc.Tests
     public class LpcClipsTests
     {
         [Test]
-        public void All_HasSeventeenAnimations()
+        public void All_HasFifteenAnimations()
         {
-            Assert.AreEqual(17, LpcClips.All.Length);
+            Assert.AreEqual(15, LpcClips.All.Length);
+        }
+
+        [Test]
+        public void Names_MatchUlpcSheetFiles()
+        {
+            // names must equal the on-disk PNG file names so an imported clip resolves its layout
+            Assert.AreEqual("combat_idle", LpcClips.CombatIdle.name);
+            Assert.AreEqual("backslash", LpcClips.Backslash.name);
+            Assert.AreEqual("halfslash", LpcClips.Halfslash.name);
+            Assert.AreEqual(6, LpcClips.Halfslash.framesPerDir);
         }
 
         [Test]

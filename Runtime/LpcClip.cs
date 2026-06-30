@@ -5,7 +5,7 @@ namespace Lpc
 {
     /// <summary>
     /// Definition of one LPC animation: its layout (frames-per-direction, directions,
-    /// cell size) and playback (fps, loop-or-once). Each of the 17 LPC animations has its
+    /// cell size) and playback (fps, loop-or-once). Each of the 15 LPC animations has its
     /// OWN layout — walk is 9x4, hurt is 6x1, shoot is 13x4, oversize variants use a
     /// larger cell — so a character can't assume a single 36-frame walk grid. The runtime
     /// indexes a layer's frames as <c>dir * framesPerDir + frame</c> for the active clip.
@@ -36,7 +36,7 @@ namespace Lpc
     }
 
     /// <summary>
-    /// Registry of the 17 standard LPC animations, in universal-sheet row order. Look up a
+    /// Registry of the 15 standard LPC animations, in universal-sheet row order. Look up a
     /// clip by name (<see cref="Get"/> / <see cref="TryGet"/>) or iterate <see cref="All"/>.
     /// Frame counts and directions follow the classic ULPC layout; fps/loop are sensible
     /// defaults a game can override per <see cref="LpcAnimator"/>.
@@ -48,30 +48,31 @@ namespace Lpc
         static LpcClip C(string name, int framesPerDir, int directions, float fps, bool loop, int frameSize = Cell)
             => new LpcClip { name = name, framesPerDir = framesPerDir, directions = directions, fps = fps, loop = loop, frameSize = frameSize };
 
-        // ---- the 17 universal LPC animations (row order on the full sheet) -------------
+        // ---- the 15 universal LPC animations (names match the ULPC sheet files; layouts
+        //      measured from the Universal-LPC-Spritesheet-Character-Generator) -----------
         public static readonly LpcClip Spellcast    = C("spellcast",     7, 4,  8f, false);
         public static readonly LpcClip Thrust       = C("thrust",        8, 4,  8f, false);
         public static readonly LpcClip Walk         = C("walk",          9, 4,  8f, true);
         public static readonly LpcClip Slash        = C("slash",         6, 4, 12f, false);
         public static readonly LpcClip Shoot        = C("shoot",        13, 4,  8f, false);
         public static readonly LpcClip Hurt         = C("hurt",          6, 1,  8f, false); // south only
-        public static readonly LpcClip Watering     = C("watering",      5, 4,  8f, false);
+        public static readonly LpcClip Climb        = C("climb",         6, 1,  8f, true);  // single column
         public static readonly LpcClip Idle         = C("idle",          2, 4,  2f, true);
         public static readonly LpcClip Jump         = C("jump",          5, 4,  8f, false);
         public static readonly LpcClip Run          = C("run",           8, 4, 12f, true);
         public static readonly LpcClip Sit          = C("sit",           3, 4,  4f, true);
         public static readonly LpcClip Emote        = C("emote",         3, 4,  6f, false);
-        public static readonly LpcClip Climb        = C("climb",         6, 1,  8f, true);  // single column
-        public static readonly LpcClip Combat       = C("combat",        2, 4,  6f, true);  // combat idle
-        public static readonly LpcClip OneHandSlash     = C("1h_slash",     6, 4, 12f, false);
-        public static readonly LpcClip OneHandBackslash = C("1h_backslash",13, 4, 12f, false);
-        public static readonly LpcClip OneHandHalfslash = C("1h_halfslash", 7, 4, 12f, false);
+        public static readonly LpcClip CombatIdle   = C("combat_idle",   2, 4,  6f, true);
+        public static readonly LpcClip Backslash    = C("backslash",    13, 4, 12f, false); // 1h backslash
+        public static readonly LpcClip Halfslash    = C("halfslash",     6, 4, 12f, false); // 1h halfslash
 
-        /// <summary>All 17 standard clips, in sheet order.</summary>
+        /// <summary>The 15 universal LPC animations, in sheet order. Names equal the ULPC
+        /// PNG file names so an imported clip resolves to its layout. (watering is a tool
+        /// overlay, not a universal body sheet, so it is not here.)</summary>
         public static readonly LpcClip[] All =
         {
-            Spellcast, Thrust, Walk, Slash, Shoot, Hurt, Watering, Idle, Jump, Run,
-            Sit, Emote, Climb, Combat, OneHandSlash, OneHandBackslash, OneHandHalfslash,
+            Spellcast, Thrust, Walk, Slash, Shoot, Hurt, Climb, Idle, Jump, Run,
+            Sit, Emote, CombatIdle, Backslash, Halfslash,
         };
 
         static Dictionary<string, LpcClip> _byName;
