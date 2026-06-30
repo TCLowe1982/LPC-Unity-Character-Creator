@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Lpc
@@ -34,5 +35,23 @@ namespace Lpc
 
         /// <summary>Frames for the named clip, or null if this layer doesn't animate it.</summary>
         public Sprite[] FramesFor(string clip) => LpcClipFrames.Resolve(clips, frames, clip);
+
+        /// <summary>Clip names this part actually has frames for (in registry order).</summary>
+        public List<string> SupportedClips()
+        {
+            var list = new List<string>();
+            foreach (var c in LpcClips.All)
+                if (FramesFor(c.name) != null) list.Add(c.name);
+            return list;
+        }
+
+        /// <summary>Clips of the standard set this part is MISSING (won't animate).</summary>
+        public List<string> MissingClips()
+        {
+            var list = new List<string>();
+            foreach (var c in LpcClips.All)
+                if (FramesFor(c.name) == null) list.Add(c.name);
+            return list;
+        }
     }
 }

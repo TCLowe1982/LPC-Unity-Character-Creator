@@ -66,6 +66,16 @@ namespace Lpc
             return false;
         }
 
+        /// <summary>Worn slots whose layer has no frames for this clip (they hide when it plays).</summary>
+        public List<string> SlotsMissingClip(string clip)
+        {
+            var miss = new List<string>();
+            if (layers != null)
+                foreach (var L in layers)
+                    if (L != null && L.FramesFor(clip) == null) miss.Add(L.name);
+            return miss;
+        }
+
         /// <summary>Switch the active animation. Layers re-resolve their frames for the new clip.</summary>
         public void Play(LpcClip clip)
         {

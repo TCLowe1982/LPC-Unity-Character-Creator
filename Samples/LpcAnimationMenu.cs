@@ -1,13 +1,18 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Lpc.Samples
 {
     /// <summary>
-    /// Builds a vertical column of buttons — one per animation the target character actually
-    /// has — that play that clip on an <see cref="LpcClipPlayer"/>. Drop it on a UI panel (e.g.
-    /// to the left of a character-preview frame) and assign the player; the menu populates
-    /// itself from the character's available clips, so it always matches what was imported.
+    /// Builds a vertical column of buttons — one per animation the target character has — that
+    /// play that clip on an <see cref="LpcClipPlayer"/>. Drop it on a UI panel (e.g. left of a
+    /// character-preview frame) and assign the player; it populates itself from the character's
+    /// available clips and re-syncs on part swaps.
+    ///
+    /// Coverage transparency: an animation that some worn part can't draw (e.g. the formal
+    /// shirt has no jump sheet) is shown but FLAGGED (amber + "*"), and clicking it reports
+    /// which worn parts will animate and which will be hidden — so nothing silently vanishes.
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
     public class LpcAnimationMenu : MonoBehaviour
@@ -21,14 +26,15 @@ namespace Lpc.Samples
         public float buttonHeight = 40f;
         public int fontSize = 20;
         public Color buttonColor = new Color(0.18f, 0.18f, 0.22f, 0.95f);
+        public Color flagColor = new Color(1f, 0.82f, 0.4f);   // amber: incomplete coverage
 
         string _signature;
+        Text status;
 
         void Start() => Build();
 
         // Rebuild when the set of available clips changes — covers the character being built
-        // after this menu's Start (script-order races) and live part swaps changing what's
-        // available (e.g. a shirt with no jump sheet).
+        // after this menu's Start (script-order races) and live part swaps changing coverage.
         void Update()
         {
             var src = Source();
@@ -38,10 +44,13 @@ namespace Lpc.Samples
         LpcCharacter Source() =>
             character != null ? character : (player != null ? player.GetComponent<LpcCharacter>() : null);
 
+        // signature includes per-clip missing-slot counts, so it also rebuilds when coverage
+        // changes (e.g. swapping a full shirt for one that lacks jump) even if the clip stays available.
         static string Signature(LpcCharacter c)
         {
             var sb = new System.Text.StringBuilder();
-            foreach (var clip in LpcClips.All) if (c.HasClip(clip.name)) sb.Append(clip.name).Append(',');
+            foreach (var clip in LpcClips.All)
+                if (c.HasClip(clip.name)) sb.Append(clip.name).Append(':').Append(c.SlotsMissingClip(clip.name).Count).Append(',');
             return sb.ToString();
         }
 
@@ -71,12 +80,15 @@ namespace Lpc.Samples
             foreach (var clip in LpcClips.All)
             {
                 if (src != null && !src.HasClip(clip.name)) continue;
-                MakeButton(clip.name, font);
+                MakeButton(clip.name, font, src);
             }
+            status = MakeStatus(font);
         }
 
-        void MakeButton(string clipName, Font font)
+        void MakeButton(string clipName, Font font, LpcCharacter src)
         {
+            int missing = src != null ? src.SlotsMissingClip(clipName).Count : 0;
+
             var go = new GameObject("Btn_" + clipName, typeof(RectTransform));
             go.transform.SetParent(transform, false);
             go.AddComponent<LayoutElement>().preferredHeight = buttonHeight;
@@ -84,7 +96,7 @@ namespace Lpc.Samples
 
             var btn = go.AddComponent<Button>();
             string name = clipName; // capture per button
-            btn.onClick.AddListener(() => { if (player != null) player.Play(name); });
+            btn.onClick.AddListener(() => { if (player != null) player.Play(name); ShowStatus(name); });
 
             var label = new GameObject("Label", typeof(RectTransform));
             label.transform.SetParent(go.transform, false);
@@ -92,11 +104,46 @@ namespace Lpc.Samples
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
             rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
             var txt = label.AddComponent<Text>();
-            txt.text = clipName;
+            txt.text = missing > 0 ? clipName + "  *" : clipName; // flag incomplete coverage
             txt.font = font;
             txt.fontSize = fontSize;
             txt.alignment = TextAnchor.MiddleCenter;
-            txt.color = Color.white;
+            txt.color = missing > 0 ? flagColor : Color.white;
+        }
+
+        Text MakeStatus(Font font)
+        {
+            var go = new GameObject("Status", typeof(RectTransform));
+            go.transform.SetParent(transform, false);
+            go.AddComponent<LayoutElement>().preferredHeight = 84f;
+            var txt = go.AddComponent<Text>();
+            txt.font = font;
+            txt.fontSize = Mathf.Max(12, fontSize - 6);
+            txt.alignment = TextAnchor.UpperLeft;
+            txt.horizontalOverflow = HorizontalWrapMode.Wrap;
+            txt.verticalOverflow = VerticalWrapMode.Truncate;
+            txt.color = new Color(0.86f, 0.86f, 0.92f);
+            txt.text = "Pick an animation. * = some worn part has no art for it.";
+            return txt;
+        }
+
+        /// <summary>Report which worn parts will and won't animate for the chosen clip.</summary>
+        void ShowStatus(string clipName)
+        {
+            if (status == null) return;
+            var src = Source();
+            if (src == null) { status.text = ""; return; }
+            var missing = src.SlotsMissingClip(clipName);
+            if (missing.Count == 0)
+            {
+                status.text = "\"" + clipName + "\": all worn parts animate.";
+                status.color = new Color(0.7f, 0.95f, 0.7f);
+            }
+            else
+            {
+                status.text = "\"" + clipName + "\": hidden (no " + clipName + " art): " + string.Join(", ", missing.ToArray()) + ".";
+                status.color = flagColor;
+            }
         }
     }
 }

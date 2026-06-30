@@ -59,10 +59,10 @@ namespace Lpc.Tests.Integration
             menu.character = c;
             menu.Build();
 
-            Assert.AreEqual(3, menuGo.transform.childCount, "one button per available clip");
-
             var names = new HashSet<string>();
-            foreach (Transform t in menuGo.transform) names.Add(t.name);
+            int buttons = 0;
+            foreach (Transform t in menuGo.transform) { names.Add(t.name); if (t.name.StartsWith("Btn_")) buttons++; }
+            Assert.AreEqual(3, buttons, "one button per available clip");
             Assert.Contains("Btn_walk", new List<string>(names));
             Assert.Contains("Btn_idle", new List<string>(names));
             Assert.Contains("Btn_slash", new List<string>(names));
