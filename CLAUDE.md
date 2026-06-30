@@ -50,20 +50,43 @@ bd close <id>         # Complete work
 <!-- END BEADS INTEGRATION -->
 
 
+> **Deep context for AI agents lives in the skill** `.claude/skills/lpc-character-creator-expert/`
+> (SKILL.md + references/). Read it first when working on this repo.
+
 ## Build & Test
 
-_Add your build and test commands here_
+This is a Unity UPM package (`com.tclowe.lpc-character-creator`, Unity 2022.3+). Two test runners
+share one set of NUnit tests:
 
 ```bash
-# Example:
-# npm install
-# npm test
+# Offline pure-logic tests (no Unity needed):
+cd Tests~ && dotnet test
+
+# In Unity: via the MCP bridge against the test bed project Ultima4_2d
+#   run_tests(mode="EditMode", assembly_names="TCLowe.Lpc.EditMode.Tests")
 ```
+
+`Tests/*.cs` = shared (offline + Unity); `Tests/Integration/*.cs` = Unity-only (real GameObjects/
+Sprites); `Tests~/` = the offline `dotnet` project (hidden from Unity by the `~`). When adding a pure
+Runtime file a shared test needs, add a `<Compile Include>` line to `Tests~/LpcLogic.Offline.csproj`.
 
 ## Architecture Overview
 
-_Add a brief overview of your project architecture_
+A layered LPC character = a stack of `SpriteRenderer` layers driven to the same `(clip, dir, frame)`
+each tick. **Animations are code-driven — no Unity `.anim` clips.** Pure arithmetic lives in Runtime
+statics (`LpcClipMath`, `LpcSliceMath`, `LpcBodyType`, `LpcCategory`, `LpcCredits`) so it unit-tests
+offline. The Editor auto-slices imported LPC sheets into `LpcLayerSet.clips`; the runtime indexes
+`dir*framesPerDir + frame` per the active clip. Full map: the skill's `references/architecture.md`.
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+- Put bug-prone logic in a **pure Runtime static** and test it **offline** (`dotnet test`); keep
+  MonoBehaviour/asset glue in `Tests/Integration/`.
+- Frame index = `dir * framesPerDir + frame`; each animation has its own grid (see `LpcClips`, 15 ULPC
+  animations whose names match the on-disk PNG files).
+- A layer with no frames for the active clip **hides** (no stale pose); the UI surfaces coverage gaps.
+- **Recolor across ALL clips** (`RecolorClips`/`SetLayerClips`), not just walk.
+- Multi-line commit messages: **`git commit -F <file>`** (PowerShell here-strings break on quotes/`*`).
+- `.meta` files are committed (UPM). Don't run `OpenScene(Single)` scripts on unsaved scenes.
+- More gotchas (MCP bridge, scene editing, re-import staleness): the skill's
+  `references/workflow-and-conventions.md`.

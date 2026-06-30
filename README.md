@@ -13,15 +13,17 @@ live, and recolor via palettes.
 
 ## What's in the box
 
-- **Runtime** — a layered character on a shared LPC walk rig (9 frames × 4 directions):
-  - `LpcCharacter` — stacked layer renderers driven in lockstep by `SetPose(dir, frame)`; live `SetLayer` / `RemoveLayer` (equip / appearance swap).
-  - `LpcLayerSet` / `LpcRecipe` — a layer (slot + zOrder + 36 frames) and an ordered set of them (= a character).
-  - `LpcCharacterBuilder` / `LpcCharacterSpawner` — build a character from a recipe, in editor or at runtime.
-- **Editor** *(in progress)* — a selective importer:
-  - a **manifest** of which slots/options you want (walk-only by default),
-  - a **copy step** that pulls just those files from your LPC clone,
-  - an **AssetPostprocessor** that auto-slices each (9×4 → 36 frames) and generates the matching `LpcLayerSet`,
-  - palette **recolor** (e.g. hair color) from the LPC `palette_definitions`.
+- **Runtime** — code-driven layered characters (no `.anim` assets):
+  - **All 15 LPC animations × 4 directions**, indexed `dir*framesPerDir + frame` per clip (`LpcClip`/
+    `LpcClips`/`LpcClipMath`). `LpcCharacter` drives every layer in lockstep; live `SetLayer`/`RemoveLayer`.
+  - `LpcAnimator` (gameplay: locomotion + one-shots) and `LpcClipPlayer` (preview: loop any clip).
+  - **Body types** (male/female/muscular/child/skeleton…) with variant fallback (`LpcBodyType`);
+    **z-order** for 21 categories (`LpcCategory`); **palette recolor** across all clips (`LpcRecolor`).
+  - `LpcLayerSet`/`LpcRecipe`/`LpcCharacterBuilder`/`LpcCharacterSpawner` — data → built character.
+- **Editor** — selective importer + auto-slicer: a **manifest** picks slots/body-types/animations, a
+  **copy step** pulls just those from your LPC source, an **AssetPostprocessor** slices each animation by
+  its grid into `LpcLayerSet.clips`, and an **attribution file** is generated from the LPC `CREDITS.csv`.
+- **Samples** — `LpcAnimationMenu`: a self-populating animation selector that flags incomplete coverage.
 
 ## Why selective import
 
@@ -60,11 +62,14 @@ local clone in `Packages/manifest.json`:
 
 ## Roadmap
 
-- [ ] Catalog importer (manifest + copy + AssetPostprocessor)
-- [ ] Palette recolor (runtime palette-swap so style × color is independent)
+- [x] Catalog importer (manifest + copy + AssetPostprocessor) + per-animation slicing
+- [x] Palette recolor across all animations (style × color independent)
+- [x] Body-type system; full 21-category coverage + z-order; attribution from `CREDITS.csv`
+- [x] All 15 LPC animations × 4 directions; animation preview/selector menu
+- [x] Bundled art via GitHub Release + one-click `Import Bundled Art`
 - [ ] Editor window: point at the LPC repo, browse + pick layers
 - [ ] OpenGameArt scraping for LPC assets missing from the base generator
-- [ ] Samples: demo character + mini character-creation scene
+- [ ] Oversize pivot offsets + per-direction z-order (cape flip)
 
 ## License
 
