@@ -35,6 +35,7 @@ namespace Lpc.Samples
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
                 var ch = transform.GetChild(i).gameObject;
+                ch.transform.SetParent(null); // detach now so a rebuild's count is right (Destroy is deferred in play)
                 if (Application.isPlaying) Destroy(ch); else DestroyImmediate(ch);
             }
 
