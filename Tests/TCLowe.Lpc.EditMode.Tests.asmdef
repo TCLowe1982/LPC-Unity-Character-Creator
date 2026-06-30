@@ -3,6 +3,7 @@
     "rootNamespace": "Lpc.Tests",
     "references": [
         "TCLowe.Lpc.Runtime",
+        "TCLowe.Lpc.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

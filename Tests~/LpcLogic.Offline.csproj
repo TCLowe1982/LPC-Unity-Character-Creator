@@ -32,6 +32,7 @@
     <Compile Include="..\Runtime\LpcSliceMath.cs" Link="Runtime\LpcSliceMath.cs" />
     <Compile Include="..\Runtime\LpcBodyType.cs"  Link="Runtime\LpcBodyType.cs" />
     <Compile Include="..\Runtime\LpcCategory.cs"  Link="Runtime\LpcCategory.cs" />
+    <Compile Include="..\Runtime\LpcCredits.cs"   Link="Runtime\LpcCredits.cs" />
     <!-- Shared NUnit tests, also compiled by the Unity EditMode asmdef. -->
     <Compile Include="..\Tests\*.cs" Link="Tests\%(Filename)%(Extension)" />
   </ItemGroup>
