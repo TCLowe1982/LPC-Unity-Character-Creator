@@ -22,15 +22,34 @@ namespace Lpc.Samples
         public int fontSize = 20;
         public Color buttonColor = new Color(0.18f, 0.18f, 0.22f, 0.95f);
 
-        void Start()
+        string _signature;
+
+        void Start() => Build();
+
+        // Rebuild when the set of available clips changes — covers the character being built
+        // after this menu's Start (script-order races) and live part swaps changing what's
+        // available (e.g. a shirt with no jump sheet).
+        void Update()
         {
-            if (player != null) Build();
+            var src = Source();
+            if (src != null && Signature(src) != _signature) Build();
+        }
+
+        LpcCharacter Source() =>
+            character != null ? character : (player != null ? player.GetComponent<LpcCharacter>() : null);
+
+        static string Signature(LpcCharacter c)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var clip in LpcClips.All) if (c.HasClip(clip.name)) sb.Append(clip.name).Append(',');
+            return sb.ToString();
         }
 
         /// <summary>(Re)build the button list from the character's available clips.</summary>
         public void Build()
         {
-            var src = character != null ? character : (player != null ? player.GetComponent<LpcCharacter>() : null);
+            var src = Source();
+            _signature = src != null ? Signature(src) : null;
 
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
