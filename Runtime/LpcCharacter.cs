@@ -143,6 +143,26 @@ namespace Lpc
             return false;
         }
 
+        /// <summary>
+        /// Replace ALL of a slot's per-animation frames at once (e.g. a recolored copy across
+        /// every clip, so the colour holds on every animation, not just walk). Pose preserved.
+        /// No-op if the slot isn't present.
+        /// </summary>
+        public bool SetLayerClips(string slot, LpcClipFrames[] clips, Sprite[] legacyWalk = null)
+        {
+            if (layers == null) return false;
+            foreach (var L in layers)
+                if (L != null && L.name == slot)
+                {
+                    L.clips = clips;
+                    if (legacyWalk != null) L.frames = legacyWalk;
+                    L.Invalidate();
+                    SetPose(curDir, curFrame);
+                    return true;
+                }
+            return false;
+        }
+
         /// <summary>Remove the layer occupying the given slot (unequip), if present.</summary>
         public void RemoveLayer(string slot)
         {

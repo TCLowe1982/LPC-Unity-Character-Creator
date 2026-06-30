@@ -45,6 +45,25 @@ namespace Lpc
             return outFrames;
         }
 
+        /// <summary>
+        /// Recolour EVERY clip of a layer onto <paramref name="target"/> (each animation is a
+        /// separate sheet, so each clip's texture is recoloured). Use this instead of
+        /// recolouring only the walk frames, or the hair keeps its original colour on every
+        /// non-walk animation.
+        /// </summary>
+        public static LpcClipFrames[] RecolorClips(LpcClipFrames[] baseClips, Color[] target)
+        {
+            if (baseClips == null) return null;
+            var outp = new LpcClipFrames[baseClips.Length];
+            for (int i = 0; i < baseClips.Length; i++)
+            {
+                var b = baseClips[i];
+                outp[i] = b == null ? null
+                    : new LpcClipFrames { clip = b.clip, frames = RecolorFrames(b.frames, target) };
+            }
+            return outp;
+        }
+
         /// <summary>Recolour a whole sheet texture onto a target ramp. Cached by (texture, ramp).</summary>
         public static Texture2D RecolorTexture(Texture2D src, Color[] target)
         {
