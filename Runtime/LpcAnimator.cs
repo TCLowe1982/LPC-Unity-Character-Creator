@@ -72,6 +72,18 @@ namespace Lpc
         /// <summary>Abort any one-shot (and its queue) and return to locomotion.</summary>
         public void Stop() { queue.Clear(); oneShot = false; }
 
+        /// <summary>
+        /// Set the clip played while moving (e.g. switch walk &lt;-&gt; run); the idle clip is
+        /// unchanged. Takes effect immediately if the character is currently in locomotion.
+        /// </summary>
+        public void SetLocomotionClip(string movingClip)
+        {
+            EnsureInit();
+            walkClipName = movingClip;
+            walkClip = LpcClips.Get(movingClip);
+            if (!oneShot) { active = walkClip; t = 0f; if (character != null) character.Play(walkClip); }
+        }
+
         void Update() => Tick(Time.deltaTime);
 
         /// <summary>
