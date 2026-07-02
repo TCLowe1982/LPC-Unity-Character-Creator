@@ -55,28 +55,40 @@ LPC source PNGs                 (spritesheets/<cat>/<part>/<bodytype>/<anim>.png
 ## Editor (`Editor/`, asmdef `TCLowe.Lpc.Editor` → references Runtime)
 
 - `LpcCatalogImporter.cs` — reads a manifest (lpcSourcePath, bodyTypes, animations, entries[slot+source
-  +zPos+credit overrides]); copies selected parts; per-body-type `<bodytype>/` subfolders (legacy
-  fallback); z from `entry.zPos` else `LpcCategory.DefaultZ`; writes `catalog_index.json` + `CREDITS.txt`
-  via `LpcCreditsReader`/`LpcCredits`.
+  +variant+zPos+credit overrides]); copies selected parts; per-body-type `<bodytype>/` subfolders
+  (body-agnostic sources tag `LpcBodyType.Any`); z from `entry.zPos` else sheet-def zPos else
+  `LpcCategory.DefaultZ`; a part whose sheet_definition has several layers (weapon fg/bg/oversize
+  attacks, cape fg/bg) expands def-driven — one entry per layer at the LAYER's zPos, secondary layers
+  on sub-slots (`weapon_l2`…), custom-animation sheets imported as their base clip via `LpcCustomAnims`
+  (remixed sequences skipped); writes `catalog_index.json` + `CREDITS.txt` via
+  `LpcCreditsReader`/`LpcCredits`.
 - `LpcCatalogPostprocessor.cs` — `AssetPostprocessor`: slices each catalog PNG per its animation grid
-  (`LpcSliceMath`, fixed-64 fallback), assembles ALL animations into `LpcLayerSet.clips`, stamps
-  bodyType + zOrder.
+  (`LpcSliceMath`, fixed-64 fallback; oversize cells pivot at the embedded body baseline), assembles
+  ALL animations into `LpcLayerSet.clips`, stamps bodyType + zOrder. Legacy `frames` gets walk ONLY —
+  never another clip (else it plays as walk).
 - `LpcCreditsReader.cs` — parses the LPC `CREDITS.csv` (quote-aware, header-detected columns), matches
   rows under a part, merges manifest overrides.
 - `LpcPaletteImporter.cs` — bakes `LpcPalette` from `palette_definitions`.
 - `LpcArtImporter.cs` — `Tools/LPC/Import Bundled Art`: downloads the Release zip, extracts to
   `LpcArtSource/` OUTSIDE Assets, repoints the manifest.
+- `LpcCatalogWindow.cs` — `Tools/LPC/Catalog Window`: browse/pick parts; LIVE preview drawn from the
+  source sheets pre-import (layered by def zPos, pivots anchored like the runtime; `LpcPreviewMath`).
+- `LpcDemoSceneBuilder.cs` — `Tools/LPC/Create Demo Scene`: generates the mini character-creation
+  scene from the imported catalog (parts grouped by source so multi-layer weapons equip whole).
 
 ## Samples (`Samples/`, asmdef `TCLowe.Lpc.Samples` → Runtime + UnityEngine.UI)
 
 - `LpcAnimationPreview.cs` (was LpcAnimationMenu; hidden by default, `startHidden`) — builds a button per available clip on a target character; flags clips some
   worn part can't draw (amber `*`) and reports hidden parts on click; auto-rebuilds when coverage
   changes. Pairs with `LpcClipPlayer`.
+- `LpcDemoCreator.cs` — self-building character-creation panel (slot cycling with optional (none),
+  body-type cycling, hair recolor presets); data wired by `LpcDemoSceneBuilder`.
 
 ## The offline-test pattern (why pure statics matter)
 
 `Tests~/LpcLogic.Offline.csproj` links the pure Runtime files (`LpcClip`, `LpcClipMath`, `LpcSliceMath`,
-`LpcBodyType`, `LpcCategory`, `LpcCredits`) + a minimal `Tests~/Shim/UnityEngine.cs` (just `Mathf`,
-`Sprite`, `[Tooltip]`) and the shared `Tests/*.cs`, so they run under `dotnet test` with no editor.
+`LpcBodyType`, `LpcCategory`, `LpcCredits`, `LpcCustomAnims`, `LpcPreviewMath`, `LpcSourceLayout`) + a
+minimal `Tests~/Shim/UnityEngine.cs` (just `Mathf`, `Rect`, `Sprite`, `[Tooltip]`) and the shared
+`Tests/*.cs`, so they run under `dotnet test` with no editor.
 **Anything MonoBehaviour/asset-bound can't go offline** — it lives in `Tests/Integration/` (Unity-only).
 So: extract the arithmetic into a Runtime static, link it offline, and keep the glue in Integration.

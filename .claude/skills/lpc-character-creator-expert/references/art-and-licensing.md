@@ -34,7 +34,22 @@ manifest `zPos` > sheet_def zPos > `LpcCategory.DefaultZ`). **There is no per-di
 teen(→female→male), child, skeleton(→male), zombie(→male). A recipe carries one `bodyType`;
 `LpcCharacterBuilder.ResolveLayers` picks each slot's best variant (drops a slot no variant supports).
 LPC stores variants in `<part>/<bodytype>/` subfolders; the importer copies each requested type and tags
-`LpcLayerSet.bodyType`.
+`LpcLayerSet.bodyType`. **Body-agnostic parts** (adult hair, hats, most weapons — no body-type
+subfolders, or def layers where every requested body maps to one sheet) tag `LpcBodyType.Any`:
+`Resolve` prefers a real matching variant, then falls back to `any`. `any` is a variant tag, not a
+requestable body, and is NOT in `LpcBodyType.All` (which also feeds folder-name detection).
+
+## Sourcing extra art (2g8.6 findings, July 2026)
+
+Investigated scraping OpenGameArt for ULPC-compatible layers missing from the generator clone.
+**Conclusion: don't.** The upstream generator repo is itself the curated aggregation — all major
+ULPC-format series (JaidynReiman's "Expanded ULPC" heads/hair/pants/socks-shoes, bluecarrot16's
+packs, extended/oversize weapons) are already integrated (143 credited OGA sources). What remains on
+OGA is creature sheets (own layouts), LPC-Revised-layout art (different base grid), or tiles —
+none consumable as character layers by our slicer. **To get "missing" assets: `git pull` the clone**
+(or rebuild + re-pin the art bundle); any ULPC-format sheet dropped into the source tree is already
+consumable by the Catalog Window/importer. Re-check OGA only if a new pack explicitly says
+"ULPC layout" and its content is absent from `spritesheets/`.
 
 ## Recolor (palette swap)
 
