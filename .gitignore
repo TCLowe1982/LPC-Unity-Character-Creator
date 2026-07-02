@@ -32,3 +32,8 @@ Thumbs.db
 !Tests~/**/*.csproj
 !Tests~/**/*.md
 !Tests~/.gitignore
+
+# UPM docs: Documentation~ is hidden from Unity by the trailing '~'; track its markdown
+# (the *~ rule above would otherwise drop the folder).
+!Documentation~/
+!Documentation~/**/*.md
