@@ -39,6 +39,7 @@ namespace Lpc.Editor
         {
             public string slot;
             public string source;
+            public string variant;         // optional colour/variant pick (e.g. arming sword "steel"); default: the def's first variant
             public int zPos = int.MinValue;
             // Optional credit overrides (augment what the importer reads from the LPC CREDITS.csv).
             public string[] authors;
@@ -102,6 +103,7 @@ namespace Lpc.Editor
 
             var index = new Index { bodyType = man.bodyType };
             var zIndex = LpcSheetDefIndex.BuildZIndex(src);   // source -> zPos from sheet_definitions
+            var defIndex = LpcSheetDefIndex.BuildDefIndex(src); // source -> parsed def (layer expansion)
             var credits = new List<LpcCreditEntry>();
             var creditedSources = new HashSet<string>();
             LpcCreditsReader.ResetCache();
@@ -123,35 +125,46 @@ namespace Lpc.Editor
                 int z = (e.zPos != int.MinValue) ? e.zPos
                       : (zIndex.TryGetValue(srcKey, out var defZ) ? defZ : LpcCategory.DefaultZ(e.slot));
 
-                // LPC draws each part per body type in a <bodytype>/ subfolder. Import every
-                // requested body type that has a subfolder; if none do, the source is already
-                // body-resolved (legacy) and we import it once tagged with the manifest's type.
-                var present = new List<string>();
-                foreach (var bt in bodyTypes) if (Directory.Exists(srcDir + "/" + bt)) present.Add(bt);
-                bool legacy = present.Count == 0;
-                var variants = legacy ? new List<string> { LpcBodyType.Normalize(man.bodyType) } : present;
-
-                string variantName = srcKey.Substring(srcKey.LastIndexOf('/') + 1);
-                foreach (var bt in variants)
+                // A part whose sheet_definition has several layers (a weapon's fg/bg/oversize
+                // attack sheets, a cape's fg/bg) is expanded def-driven: one catalog entry per
+                // layer with that layer's own zPos. Single-layer defs keep the plain flow.
+                if (defIndex.TryGetValue(srcKey, out var def) && def.NeedsLayerExpansion)
                 {
-                    string useDir = legacy ? srcDir : srcDir + "/" + bt;
-                    string vid = legacy ? baseId : baseId + "_" + bt;
+                    copied += ImportDefLayers(e, def, spritesheets, slotDir, baseId, srcKey, z,
+                                              bodyTypes, man, anims, index, ref missing);
+                }
+                else
+                {
+                    // LPC draws each part per body type in a <bodytype>/ subfolder. Import every
+                    // requested body type that has a subfolder; if none do, the source is already
+                    // body-resolved (legacy) and we import it once tagged with the manifest's type.
+                    var present = new List<string>();
+                    foreach (var bt in bodyTypes) if (Directory.Exists(srcDir + "/" + bt)) present.Add(bt);
+                    bool legacy = present.Count == 0;
+                    var variants = legacy ? new List<string> { LpcBodyType.Normalize(man.bodyType) } : present;
 
-                    var files = new List<string>();
-                    var usedAnims = new List<string>();
-                    foreach (var a in anims)
+                    string variantName = srcKey.Substring(srcKey.LastIndexOf('/') + 1);
+                    foreach (var bt in variants)
                     {
-                        string sp = FindAnimSheet(useDir, a, variantName);
-                        if (sp == null) { missing++; continue; }
-                        // walk -> "<vid>.png"; other anims -> "<vid>__<anim>.png" (vid carries the body type)
-                        string fileName = (a == "walk") ? vid + ".png" : vid + "__" + a + ".png";
-                        string dp = slotDir + "/" + fileName;
-                        File.Copy(sp, dp, true);
-                        files.Add(dp); usedAnims.Add(a); copied++;
-                    }
-                    if (files.Count == 0) { Debug.LogWarning($"[LPC] No listed animations found for {e.source} [{bt}]"); continue; }
+                        string useDir = legacy ? srcDir : srcDir + "/" + bt;
+                        string vid = legacy ? baseId : baseId + "_" + bt;
 
-                    index.entries.Add(new IndexEntry { slot = e.slot, id = vid, bodyType = bt, zOrder = z, source = e.source, animations = usedAnims.ToArray(), files = files.ToArray() });
+                        var files = new List<string>();
+                        var usedAnims = new List<string>();
+                        foreach (var a in anims)
+                        {
+                            string sp = FindAnimSheet(useDir, a, variantName);
+                            if (sp == null) { missing++; continue; }
+                            // walk -> "<vid>.png"; other anims -> "<vid>__<anim>.png" (vid carries the body type)
+                            string fileName = (a == "walk") ? vid + ".png" : vid + "__" + a + ".png";
+                            string dp = slotDir + "/" + fileName;
+                            File.Copy(sp, dp, true);
+                            files.Add(dp); usedAnims.Add(a); copied++;
+                        }
+                        if (files.Count == 0) { Debug.LogWarning($"[LPC] No listed animations found for {e.source} [{bt}]"); continue; }
+
+                        index.entries.Add(new IndexEntry { slot = e.slot, id = vid, bodyType = bt, zOrder = z, source = e.source, animations = usedAnims.ToArray(), files = files.ToArray() });
+                    }
                 }
 
                 // one credit record per part actually copied (independent of body type / animation)
@@ -166,11 +179,95 @@ namespace Lpc.Editor
         }
 
         /// <summary>
+        /// Import one manifest entry whose sheet_definition needs layer expansion (od3): each
+        /// def layer becomes its own catalog entry — with the LAYER's zPos — so a weapon's
+        /// foreground, behind-body, and oversize attack sheets each draw at the right depth.
+        /// Secondary layers get sub-slots ("weapon_l2", ...) since the runtime keys layers by
+        /// slot. A layer drawn with a remixed custom animation (no base clip) is skipped.
+        /// Returns the number of sheets copied.
+        /// </summary>
+        static int ImportDefLayers(Entry e, LpcSheetDef def, string spritesheets, string slotDir,
+                                   string baseId, string srcKey, int entryZ,
+                                   string[] bodyTypes, Manifest man, string[] anims, Index index, ref int missing)
+        {
+            int copied = 0;
+            // variant pick: manifest override > the def's first variant > the source's last segment
+            string variant = !string.IsNullOrEmpty(e.variant) ? e.variant
+                           : (def.variants.Count > 0 ? def.variants[0] : srcKey.Substring(srcKey.LastIndexOf('/') + 1));
+
+            for (int li = 0; li < def.layers.Count; li++)
+            {
+                var layer = def.layers[li];
+                string slotName = li == 0 ? e.slot : e.slot + "_l" + (li + 1);
+                string layerId = li == 0 ? baseId : baseId + "_l" + (li + 1);
+                // an explicit manifest zPos overrides only the primary layer; others keep def z
+                int z = (li == 0 && e.zPos != int.MinValue) ? e.zPos : layer.zPos;
+
+                // group requested body types by the path the def maps them to (weapons map
+                // every type to one path -> a single body-agnostic import)
+                var byPath = new List<KeyValuePair<string, string>>(); // path -> first body type
+                foreach (var bt in bodyTypes)
+                {
+                    string p = layer.PathFor(bt);
+                    if (p == null) continue;
+                    bool seen = false;
+                    foreach (var kv in byPath) if (kv.Key == p) { seen = true; break; }
+                    if (!seen) byPath.Add(new KeyValuePair<string, string>(p, bt));
+                }
+                if (byPath.Count == 0 && layer.sources.Count > 0)
+                    byPath.Add(new KeyValuePair<string, string>(layer.sources[0], LpcBodyType.Normalize(man.bodyType)));
+
+                bool perBody = byPath.Count > 1;
+                foreach (var kv in byPath)
+                {
+                    string layerDir = spritesheets + "/" + kv.Key;
+                    string vid = perBody ? layerId + "_" + kv.Value : layerId;
+                    var files = new List<string>();
+                    var usedAnims = new List<string>();
+
+                    if (!string.IsNullOrEmpty(layer.customAnimation))
+                    {
+                        // one sheet drawn on a custom layout; import it as its base clip
+                        string baseClip = LpcCustomAnims.BaseClip(layer.customAnimation);
+                        if (baseClip == null)
+                        {
+                            Debug.Log($"[LPC] {def.name}: skipping layer {li + 1} — custom animation '{layer.customAnimation}' remixes frames (no base clip).");
+                            continue;
+                        }
+                        if (System.Array.IndexOf(anims, baseClip) < 0) continue; // not selected in the manifest
+                        string sp = FindCustomSheet(layerDir, variant);
+                        if (sp == null) { missing++; continue; }
+                        string dp = slotDir + "/" + vid + "__" + baseClip + ".png";
+                        File.Copy(sp, dp, true);
+                        files.Add(dp); usedAnims.Add(baseClip); copied++;
+                    }
+                    else
+                    {
+                        foreach (var a in anims)
+                        {
+                            string sp = FindAnimSheet(layerDir, a, variant);
+                            if (sp == null) { missing++; continue; }
+                            string fileName = (a == "walk") ? vid + ".png" : vid + "__" + a + ".png";
+                            string dp = slotDir + "/" + fileName;
+                            File.Copy(sp, dp, true);
+                            files.Add(dp); usedAnims.Add(a); copied++;
+                        }
+                    }
+                    if (files.Count == 0) continue;
+
+                    index.entries.Add(new IndexEntry { slot = slotName, id = vid, bodyType = kv.Value, zOrder = z, source = kv.Key, animations = usedAnims.ToArray(), files = files.ToArray() });
+                }
+            }
+            return copied;
+        }
+
+        /// <summary>
         /// Locate the sheet for one animation. Body parts store per-animation files directly
         /// ("&lt;part&gt;/[bodytype/]&lt;anim&gt;.png"); weapons store them in animation folders
-        /// named by the part's variant ("walk/longsword.png"), with oversize attack sheets in
-        /// "attack_&lt;anim&gt;/" (128/192px cells; the slicer derives the cell and raises the
-        /// pivot, 2g8.14). Returns null when the part has no sheet for this animation.
+        /// named by the part's variant ("walk/longsword.png"). Oversize attack sheets are NOT
+        /// resolved here — they are declared as custom-animation layers in the part's
+        /// sheet_definition and imported by <see cref="ImportDefLayers"/> at their own zPos.
+        /// Returns null when the part has no sheet for this animation.
         /// </summary>
         static string FindAnimSheet(string dir, string anim, string variant)
         {
@@ -178,8 +275,27 @@ namespace Lpc.Editor
             if (File.Exists(p)) return p;
             p = dir + "/" + anim + "/" + variant + ".png";
             if (File.Exists(p)) return p;
-            p = dir + "/attack_" + anim + "/" + variant + ".png";
-            return File.Exists(p) ? p : null;
+            return FirstPng(dir + "/" + anim);   // variant name mismatch: take the folder's first sheet
+        }
+
+        /// <summary>A custom-animation layer is a single whole sheet: "&lt;path&gt;/&lt;variant&gt;.png",
+        /// or the flat "&lt;path&gt;.png" form (e.g. arming's attack_slash/fg.png).</summary>
+        static string FindCustomSheet(string dir, string variant)
+        {
+            string p = dir + "/" + variant + ".png";
+            if (File.Exists(p)) return p;
+            p = dir + ".png";
+            if (File.Exists(p)) return p;
+            return FirstPng(dir);
+        }
+
+        static string FirstPng(string dir)
+        {
+            if (!Directory.Exists(dir)) return null;
+            var pngs = Directory.GetFiles(dir, "*.png");
+            if (pngs.Length == 0) return null;
+            System.Array.Sort(pngs, System.StringComparer.OrdinalIgnoreCase); // deterministic pick
+            return pngs[0];
         }
 
         static string Sanitize(string rel) => rel.Trim('/').Replace('/', '_').Replace('\\', '_');

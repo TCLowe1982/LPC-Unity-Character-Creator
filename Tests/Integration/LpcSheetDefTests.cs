@@ -49,6 +49,37 @@ namespace Lpc.Tests.Integration
         }
 
         [Test]
+        public void Parse_VariantsAndTypedSources_AreExtracted()
+        {
+            const string SwordJson =
+                "{ \"name\": \"Arming\", " +
+                "\"layer_1\": { \"zPos\": 140, \"male\": \"weapon/sword/arming/universal/fg/\", \"female\": \"weapon/sword/arming/universal/fg/\" }, " +
+                "\"layer_2\": { \"zPos\": 9, \"male\": \"weapon/sword/arming/universal/bg/\" }, " +
+                "\"variants\": [\"brass\", \"steel\", \"gold\"] }";
+            var def = LpcSheetDefParser.Parse(SwordJson);
+
+            CollectionAssert.AreEqual(new[] { "brass", "steel", "gold" }, def.variants);
+            Assert.AreEqual("weapon/sword/arming/universal/fg", def.layers[0].PathFor("male"));
+            Assert.AreEqual("weapon/sword/arming/universal/fg", def.layers[0].PathFor("female"));
+            Assert.IsNull(def.layers[0].PathFor("skeleton"), "unlisted body type has no path");
+            Assert.IsTrue(def.NeedsLayerExpansion, "multi-layer def needs expansion");
+        }
+
+        [Test]
+        public void NeedsLayerExpansion_SingleLayerNoCustom_IsFalse()
+        {
+            const string PlainJson =
+                "{ \"name\": \"Pants\", \"layer_1\": { \"zPos\": 25, \"male\": \"legs/pants/male/\" } }";
+            Assert.IsFalse(LpcSheetDefParser.Parse(PlainJson).NeedsLayerExpansion);
+
+            const string CustomJson =
+                "{ \"name\": \"Spear\", \"layer_1\": { \"zPos\": 145, " +
+                "\"custom_animation\": \"thrust_oversize\", \"male\": \"weapon/polearm/x/fg/\" } }";
+            Assert.IsTrue(LpcSheetDefParser.Parse(CustomJson).NeedsLayerExpansion,
+                "a custom-animation layer needs expansion even when single-layer");
+        }
+
+        [Test]
         public void Parse_HandlesEmptyOrMissing()
         {
             Assert.AreEqual(0, LpcSheetDefParser.Parse(null).layers.Count);

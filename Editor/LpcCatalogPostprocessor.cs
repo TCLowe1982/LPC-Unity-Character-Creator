@@ -146,7 +146,10 @@ namespace Lpc.Editor
                 ls.bodyType = string.IsNullOrEmpty(e.bodyType) ? LpcBodyType.Male : e.bodyType;
                 ls.zOrder = e.zOrder;
                 ls.clips = clips.ToArray();
-                ls.frames = walkFrames ?? clips[0].frames;   // legacy/back-compat: walk if present, else first
+                // Legacy walk fallback ONLY when the part really has walk art. Filling it with
+                // another clip's frames would make Resolve() play that clip AS walk (a slash-only
+                // oversize weapon layer must hide during walk, not show a stale swing frame).
+                ls.frames = walkFrames;
 
                 if (isNew) { AssetDatabase.CreateAsset(ls, assetPath); made++; }
                 else { EditorUtility.SetDirty(ls); updated++; }

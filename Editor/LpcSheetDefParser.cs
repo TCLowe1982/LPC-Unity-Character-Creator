@@ -12,6 +12,15 @@ namespace Lpc.Editor
         public int zPos;
         public string customAnimation;
         public List<string> sources = new List<string>();
+        // body-type key -> path, in def order (weapons usually map every type to one path)
+        public List<KeyValuePair<string, string>> typedSources = new List<KeyValuePair<string, string>>();
+
+        /// <summary>The layer's path for a body type; null when the def doesn't list it.</summary>
+        public string PathFor(string bodyType)
+        {
+            foreach (var ts in typedSources) if (ts.Key == bodyType) return ts.Value;
+            return null;
+        }
     }
 
     /// <summary>Parsed LPC sheet_definition: name + its layers. Multi-layer parts (e.g. a cape's
@@ -20,6 +29,19 @@ namespace Lpc.Editor
     {
         public string name;
         public List<LpcSheetLayer> layers = new List<LpcSheetLayer>();
+        public List<string> variants = new List<string>();
+
+        /// <summary>True when importing this def needs layer expansion (multi-layer part or
+        /// custom-animation sheets) rather than the plain single-layer flow.</summary>
+        public bool NeedsLayerExpansion
+        {
+            get
+            {
+                if (layers.Count > 1) return true;
+                foreach (var l in layers) if (!string.IsNullOrEmpty(l.customAnimation)) return true;
+                return false;
+            }
+        }
     }
 
     /// <summary>
@@ -38,6 +60,8 @@ namespace Lpc.Editor
         static readonly Regex ZRx = new Regex("\"zPos\"\\s*:\\s*(-?\\d+)");
         static readonly Regex PathRx = new Regex("\"(\\w+)\"\\s*:\\s*\"([^\"]+)\"");
         static readonly Regex NameRx = new Regex("\"name\"\\s*:\\s*\"([^\"]*)\"");
+        static readonly Regex VariantsRx = new Regex("\"variants\"\\s*:\\s*\\[([^\\]]*)\\]", RegexOptions.Singleline);
+        static readonly Regex QuotedRx = new Regex("\"([^\"]*)\"");
 
         public static LpcSheetDef Parse(string json)
         {
@@ -46,6 +70,11 @@ namespace Lpc.Editor
 
             var nameM = NameRx.Match(json);
             if (nameM.Success) def.name = nameM.Groups[1].Value;
+
+            var varM = VariantsRx.Match(json);
+            if (varM.Success)
+                foreach (Match qm in QuotedRx.Matches(varM.Groups[1].Value))
+                    if (qm.Groups[1].Value.Length > 0) def.variants.Add(qm.Groups[1].Value);
 
             // layer blocks are flat (zPos + body-type:path strings, no nested objects), so [^}]* is safe
             foreach (Match lm in LayerRx.Matches(json))
@@ -60,7 +89,9 @@ namespace Lpc.Editor
                     if (pm.Groups[1].Value == "custom_animation") // oversize/remapped playback, not a path
                     { layer.customAnimation = pm.Groups[2].Value; continue; }
                     string path = pm.Groups[2].Value.Replace('\\', '/').Trim().TrimEnd('/');
-                    if (path.Length > 0 && !layer.sources.Contains(path)) layer.sources.Add(path);
+                    if (path.Length == 0) continue;
+                    layer.typedSources.Add(new KeyValuePair<string, string>(pm.Groups[1].Value, path));
+                    if (!layer.sources.Contains(path)) layer.sources.Add(path);
                 }
                 def.layers.Add(layer);
             }
