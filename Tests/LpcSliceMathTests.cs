@@ -80,5 +80,26 @@ namespace Lpc.Tests
             Assert.IsTrue(LpcSliceMath.IsOversize(128, 64));
             Assert.IsTrue(LpcSliceMath.IsOversize(64, 192));
         }
+
+        [Test]
+        public void PivotY_StandardCell_IsBottom()
+        {
+            Assert.AreEqual(0f, LpcSliceMath.PivotY(64));
+        }
+
+        [Test]
+        public void PivotY_Oversize_CentersTheEmbedded64pxBody()
+        {
+            // the generator centers the 64px body in the oversize cell, so the baseline
+            // sits (cell-64)/2 px above the cell bottom: 128 -> 32/128, 192 -> 64/192
+            Assert.AreEqual(0.25f, LpcSliceMath.PivotY(128));
+            Assert.AreEqual(1f / 3f, LpcSliceMath.PivotY(192), 1e-6f);
+        }
+
+        [Test]
+        public void PivotY_NeverNegative_ForSubBaseCells()
+        {
+            Assert.AreEqual(0f, LpcSliceMath.PivotY(32));
+        }
     }
 }

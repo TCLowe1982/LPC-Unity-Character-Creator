@@ -35,6 +35,20 @@ namespace Lpc.Tests.Integration
         }
 
         [Test]
+        public void Parse_CustomAnimation_IsNotASourcePath()
+        {
+            const string SwordJson =
+                "{ \"name\": \"Longsword\", \"layer_1\": { \"zPos\": 150, " +
+                "\"custom_animation\": \"slash_oversize\", " +
+                "\"male\": \"weapon/sword/longsword/attack_slash/\" } }";
+            var def = LpcSheetDefParser.Parse(SwordJson);
+            Assert.AreEqual(1, def.layers.Count);
+            Assert.AreEqual("slash_oversize", def.layers[0].customAnimation);
+            CollectionAssert.AreEquivalent(
+                new[] { "weapon/sword/longsword/attack_slash" }, def.layers[0].sources);
+        }
+
+        [Test]
         public void Parse_HandlesEmptyOrMissing()
         {
             Assert.AreEqual(0, LpcSheetDefParser.Parse(null).layers.Count);

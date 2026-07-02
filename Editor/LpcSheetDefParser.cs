@@ -3,11 +3,14 @@ using System.Text.RegularExpressions;
 
 namespace Lpc.Editor
 {
-    /// <summary>One layer of an LPC sheet_definition: its draw order (zPos) and the per-body-type
-    /// source paths it maps to (relative to spritesheets/, e.g. "cape/solid/fg").</summary>
+    /// <summary>One layer of an LPC sheet_definition: its draw order (zPos), the per-body-type
+    /// source paths it maps to (relative to spritesheets/, e.g. "cape/solid/fg"), and the
+    /// custom animation it is drawn with (e.g. "slash_oversize" for a 192px big-weapon swing),
+    /// null for standard 64px layers.</summary>
     public class LpcSheetLayer
     {
         public int zPos;
+        public string customAnimation;
         public List<string> sources = new List<string>();
     }
 
@@ -54,6 +57,8 @@ namespace Lpc.Editor
                 foreach (Match pm in PathRx.Matches(body))
                 {
                     if (pm.Groups[1].Value == "zPos") continue; // numeric, not a path
+                    if (pm.Groups[1].Value == "custom_animation") // oversize/remapped playback, not a path
+                    { layer.customAnimation = pm.Groups[2].Value; continue; }
                     string path = pm.Groups[2].Value.Replace('\\', '/').Trim().TrimEnd('/');
                     if (path.Length > 0 && !layer.sources.Contains(path)) layer.sources.Add(path);
                 }

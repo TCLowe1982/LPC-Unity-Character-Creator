@@ -131,6 +131,7 @@ namespace Lpc.Editor
                 bool legacy = present.Count == 0;
                 var variants = legacy ? new List<string> { LpcBodyType.Normalize(man.bodyType) } : present;
 
+                string variantName = srcKey.Substring(srcKey.LastIndexOf('/') + 1);
                 foreach (var bt in variants)
                 {
                     string useDir = legacy ? srcDir : srcDir + "/" + bt;
@@ -140,8 +141,8 @@ namespace Lpc.Editor
                     var usedAnims = new List<string>();
                     foreach (var a in anims)
                     {
-                        string sp = useDir + "/" + a + ".png";
-                        if (!File.Exists(sp)) { missing++; continue; }
+                        string sp = FindAnimSheet(useDir, a, variantName);
+                        if (sp == null) { missing++; continue; }
                         // walk -> "<vid>.png"; other anims -> "<vid>__<anim>.png" (vid carries the body type)
                         string fileName = (a == "walk") ? vid + ".png" : vid + "__" + a + ".png";
                         string dp = slotDir + "/" + fileName;
@@ -162,6 +163,23 @@ namespace Lpc.Editor
             File.WriteAllText(dest + "/CREDITS.txt", LpcCredits.Format(credits));
             AssetDatabase.Refresh();
             Debug.Log($"[LPC] Catalog import complete: {index.entries.Count} parts, {copied} sheet(s) copied, {missing} missing -> {dest}");
+        }
+
+        /// <summary>
+        /// Locate the sheet for one animation. Body parts store per-animation files directly
+        /// ("&lt;part&gt;/[bodytype/]&lt;anim&gt;.png"); weapons store them in animation folders
+        /// named by the part's variant ("walk/longsword.png"), with oversize attack sheets in
+        /// "attack_&lt;anim&gt;/" (128/192px cells; the slicer derives the cell and raises the
+        /// pivot, 2g8.14). Returns null when the part has no sheet for this animation.
+        /// </summary>
+        static string FindAnimSheet(string dir, string anim, string variant)
+        {
+            string p = dir + "/" + anim + ".png";
+            if (File.Exists(p)) return p;
+            p = dir + "/" + anim + "/" + variant + ".png";
+            if (File.Exists(p)) return p;
+            p = dir + "/attack_" + anim + "/" + variant + ".png";
+            return File.Exists(p) ? p : null;
         }
 
         static string Sanitize(string rel) => rel.Trim('/').Replace('/', '_').Replace('\\', '_');

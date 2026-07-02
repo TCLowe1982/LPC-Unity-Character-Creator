@@ -53,13 +53,19 @@ namespace Lpc.Editor
             if (LpcClips.TryGet(anim, out var clip)) { cols = clip.framesPerDir; rows = clip.directions; }
             else { cols = Mathf.Max(1, w / FrameSize); rows = Mathf.Max(1, h / FrameSize); }
 
-            if (!LpcSliceMath.TrySlice(w, h, cols, rows, out var cells, out _, out _))
+            if (!LpcSliceMath.TrySlice(w, h, cols, rows, out var cells, out _, out int cellH))
             {
                 // PNG doesn't divide evenly by the clip's grid (custom/padded sheet):
                 // fall back to a fixed 64px grid so we still produce usable sprites.
                 cols = Mathf.Max(1, w / FrameSize); rows = Mathf.Max(1, h / FrameSize);
                 cells = LpcSliceMath.Slice(w, h, cols, rows, FrameSize, FrameSize);
+                cellH = FrameSize;
             }
+
+            // Standard cells pivot at the feet (bottom-center). Oversize cells (128/192px
+            // weapon sheets) carry the 64px body CENTERED, so their pivot is raised to the
+            // embedded body's baseline (2g8.14) — both then align at the same position.
+            var pivot = new Vector2(0.5f, LpcSliceMath.PivotY(cellH));
 
             var metas = new List<SpriteMetaData>(cells.Length);
             foreach (var cell in cells)
@@ -67,7 +73,7 @@ namespace Lpc.Editor
                 {
                     rect = new Rect(cell.x, cell.y, cell.w, cell.h),
                     alignment = (int)SpriteAlignment.Custom,
-                    pivot = new Vector2(0.5f, 0f),               // feet: bottom-center (oversize shares the baseline)
+                    pivot = pivot,
                     name = baseName + "_" + cell.index
                 });
             ti.spritesheet = metas.ToArray();

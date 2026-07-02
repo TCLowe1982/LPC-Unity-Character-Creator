@@ -78,5 +78,17 @@ namespace Lpc
 
         /// <summary>A cell larger than the standard 64px body cell is an oversize frame.</summary>
         public static bool IsOversize(int cellW, int cellH, int baseCell = BaseCell) => cellW > baseCell || cellH > baseCell;
+
+        /// <summary>
+        /// Normalized pivot Y for a sliced cell (2g8.14). The ULPC generator composes an
+        /// oversize cell by CENTERING the 64px body frame in the larger cell — offset
+        /// <c>(cell - 64) / 2</c> on both axes (see the generator's draw-frames) — so the
+        /// body's baseline sits <c>(cellH - baseCell)/2</c> pixels above the cell bottom.
+        /// A standard cell pivots at its bottom (0); pivot X is always 0.5 (centered).
+        /// Pivoting an oversize sprite here makes it line up with bottom-pivoted 64px
+        /// layers when both are drawn at the same transform position.
+        /// </summary>
+        public static float PivotY(int cellH, int baseCell = BaseCell)
+            => cellH > baseCell ? (cellH - baseCell) / (2f * cellH) : 0f;
     }
 }
