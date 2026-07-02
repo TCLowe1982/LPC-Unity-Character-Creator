@@ -143,7 +143,7 @@ namespace Lpc.Editor
                 if (isNew) ls = ScriptableObject.CreateInstance<LpcLayerSet>();
 
                 ls.slot = e.slot;
-                ls.bodyType = string.IsNullOrEmpty(e.bodyType) ? LpcBodyType.Male : e.bodyType;
+                ls.bodyType = string.IsNullOrEmpty(e.bodyType) ? LpcBodyType.Any : e.bodyType;
                 ls.zOrder = e.zOrder;
                 ls.clips = clips.ToArray();
                 // Legacy walk fallback ONLY when the part really has walk art. Filling it with

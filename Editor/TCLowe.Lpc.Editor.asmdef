@@ -2,7 +2,8 @@
     "name": "TCLowe.Lpc.Editor",
     "rootNamespace": "Lpc.Editor",
     "references": [
-        "TCLowe.Lpc.Runtime"
+        "TCLowe.Lpc.Runtime",
+        "TCLowe.Lpc.Samples"
     ],
     "includePlatforms": [
         "Editor"

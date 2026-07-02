@@ -25,6 +25,8 @@ live, and recolor via palettes.
   its grid into `LpcLayerSet.clips`, and an **attribution file** is generated from the LPC `CREDITS.csv`.
 - **Samples** — `LpcAnimationPreview`: a self-populating animation preview panel that flags incomplete
   coverage. A package-dev tool: hidden by default (`startHidden`); open it with `Show()`/`Toggle()`.
+  `LpcDemoCreator` + **Tools/LPC/Create Demo Scene**: generates a mini character-creation scene from
+  the imported catalog (slot cycling, body type, hair recolor, live animation preview).
 
 ## Why selective import
 

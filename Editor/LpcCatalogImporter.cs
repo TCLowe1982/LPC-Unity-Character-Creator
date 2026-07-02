@@ -141,7 +141,8 @@ namespace Lpc.Editor
                     var present = new List<string>();
                     foreach (var bt in bodyTypes) if (Directory.Exists(srcDir + "/" + bt)) present.Add(bt);
                     bool legacy = present.Count == 0;
-                    var variants = legacy ? new List<string> { LpcBodyType.Normalize(man.bodyType) } : present;
+                    // a source with no body-type subfolders is body-agnostic: fits every body
+                    var variants = legacy ? new List<string> { LpcBodyType.Any } : present;
 
                     string variantName = srcKey.Substring(srcKey.LastIndexOf('/') + 1);
                     foreach (var bt in variants)
@@ -206,16 +207,22 @@ namespace Lpc.Editor
                 // group requested body types by the path the def maps them to (weapons map
                 // every type to one path -> a single body-agnostic import)
                 var byPath = new List<KeyValuePair<string, string>>(); // path -> first body type
+                int resolved = 0;
                 foreach (var bt in bodyTypes)
                 {
                     string p = layer.PathFor(bt);
                     if (p == null) continue;
+                    resolved++;
                     bool seen = false;
                     foreach (var kv in byPath) if (kv.Key == p) { seen = true; break; }
                     if (!seen) byPath.Add(new KeyValuePair<string, string>(p, bt));
                 }
+                // every requested body shares one sheet -> body-agnostic; a def listing only
+                // SOME types keeps the specific tag (its art genuinely doesn't fit the rest)
+                if (byPath.Count == 1 && resolved == bodyTypes.Length)
+                    byPath[0] = new KeyValuePair<string, string>(byPath[0].Key, LpcBodyType.Any);
                 if (byPath.Count == 0 && layer.sources.Count > 0)
-                    byPath.Add(new KeyValuePair<string, string>(layer.sources[0], LpcBodyType.Normalize(man.bodyType)));
+                    byPath.Add(new KeyValuePair<string, string>(layer.sources[0], LpcBodyType.Any));
 
                 bool perBody = byPath.Count > 1;
                 foreach (var kv in byPath)

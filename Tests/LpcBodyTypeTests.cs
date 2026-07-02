@@ -39,6 +39,27 @@ namespace Lpc.Tests
         }
 
         [Test]
+        public void Resolve_BodyAgnosticVariant_FitsEveryBody()
+        {
+            // adult hair / hats / most weapons import as "any": every body can wear them...
+            var onlyAny = new[] { LpcBodyType.Any };
+            Assert.AreEqual(LpcBodyType.Any, LpcBodyType.Resolve("female", onlyAny));
+            Assert.AreEqual(LpcBodyType.Any, LpcBodyType.Resolve("skeleton", onlyAny));
+
+            // ...but a REAL matching variant still wins over the agnostic one
+            var mixed = new[] { LpcBodyType.Any, "female" };
+            Assert.AreEqual("female", LpcBodyType.Resolve("female", mixed));
+            Assert.AreEqual(LpcBodyType.Any, LpcBodyType.Resolve("male", mixed));
+        }
+
+        [Test]
+        public void Resolve_AnyIsNotARequestableBody()
+        {
+            Assert.IsFalse(LpcBodyType.IsKnown(LpcBodyType.Any), "'any' is a variant tag, not a body");
+            Assert.IsNull(LpcBodyType.Resolve("female", new[] { "male" }), "female does not fall back to male-only art");
+        }
+
+        [Test]
         public void Resolve_PicksExactWhenAvailable()
         {
             Assert.AreEqual("female", LpcBodyType.Resolve("female", new[] { "male", "female" }));

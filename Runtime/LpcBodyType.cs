@@ -25,6 +25,11 @@ namespace Lpc
         public const string Skeleton = "skeleton";
         public const string Zombie = "zombie";
 
+        /// <summary>A BODY-AGNOSTIC part variant (adult hair, hats, most weapons): fits every
+        /// body type, at lower priority than a real matching variant. Not in <see cref="All"/> —
+        /// it is a variant tag, not a body a recipe can request (and never an LPC folder name).</summary>
+        public const string Any = "any";
+
         /// <summary>All known body types, base/common first.</summary>
         public static readonly string[] All =
             { Male, Muscular, Female, Pregnant, Teen, Child, Skeleton, Zombie };
@@ -58,14 +63,15 @@ namespace Lpc
 
         /// <summary>
         /// Pick the best available body type for <paramref name="requested"/> from those a part
-        /// provides, walking the fallback chain. Returns null if the part has none of them.
+        /// provides: the fallback chain first, then a body-agnostic <see cref="Any"/> variant.
+        /// Returns null if the part has none of them.
         /// </summary>
         public static string Resolve(string requested, ICollection<string> available)
         {
             if (available == null || available.Count == 0) return null;
             foreach (var bt in FallbackChain(requested))
                 if (available.Contains(bt)) return bt;
-            return null;
+            return available.Contains(Any) ? Any : null;
         }
 
         /// <summary>True if a part offering <paramref name="available"/> can dress the requested body.</summary>
