@@ -6,9 +6,10 @@ using Lpc.Samples;
 
 namespace Lpc.Tests.Integration
 {
-    /// <summary>The animation menu should generate exactly one button per clip the character
-    /// actually has — so it always matches what was imported.</summary>
-    public class LpcAnimationMenuTests
+    /// <summary>The animation preview panel should generate exactly one button per clip the
+    /// character actually has — so it always matches what was imported — and, being a
+    /// package-dev tool, must default to hidden in consuming projects.</summary>
+    public class LpcAnimationPreviewTests
     {
         readonly List<Object> temp = new List<Object>();
         GameObject character, menuGo;
@@ -53,8 +54,8 @@ namespace Lpc.Tests.Integration
             var c = LpcCharacterBuilder.Build(recipe, character);
             var player = character.AddComponent<LpcClipPlayer>();
 
-            menuGo = new GameObject("Menu", typeof(RectTransform));
-            var menu = menuGo.AddComponent<LpcAnimationMenu>();
+            menuGo = new GameObject("Preview", typeof(RectTransform));
+            var menu = menuGo.AddComponent<LpcAnimationPreview>();
             menu.player = player;
             menu.character = c;
             menu.Build();
@@ -66,6 +67,23 @@ namespace Lpc.Tests.Integration
             Assert.Contains("Btn_walk", new List<string>(names));
             Assert.Contains("Btn_idle", new List<string>(names));
             Assert.Contains("Btn_slash", new List<string>(names));
+        }
+
+        [Test]
+        public void Preview_DefaultsToHidden_AndShowHideToggleWork()
+        {
+            menuGo = new GameObject("Preview", typeof(RectTransform));
+            var menu = menuGo.AddComponent<LpcAnimationPreview>();
+
+            // package-dev tool: consuming projects must not see it unless explicitly opened
+            Assert.IsTrue(menu.startHidden, "preview panel must default to hidden");
+
+            menu.Hide();
+            Assert.IsFalse(menuGo.activeSelf);
+            menu.Show();
+            Assert.IsTrue(menuGo.activeSelf);
+            menu.Toggle();
+            Assert.IsFalse(menuGo.activeSelf);
         }
     }
 }

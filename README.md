@@ -23,7 +23,8 @@ live, and recolor via palettes.
 - **Editor** — selective importer + auto-slicer: a **manifest** picks slots/body-types/animations, a
   **copy step** pulls just those from your LPC source, an **AssetPostprocessor** slices each animation by
   its grid into `LpcLayerSet.clips`, and an **attribution file** is generated from the LPC `CREDITS.csv`.
-- **Samples** — `LpcAnimationMenu`: a self-populating animation selector that flags incomplete coverage.
+- **Samples** — `LpcAnimationPreview`: a self-populating animation preview panel that flags incomplete
+  coverage. A package-dev tool: hidden by default (`startHidden`); open it with `Show()`/`Toggle()`.
 
 ## Why selective import
 

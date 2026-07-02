@@ -69,7 +69,7 @@ LPC source PNGs                 (spritesheets/<cat>/<part>/<bodytype>/<anim>.png
 
 ## Samples (`Samples/`, asmdef `TCLowe.Lpc.Samples` → Runtime + UnityEngine.UI)
 
-- `LpcAnimationMenu.cs` — builds a button per available clip on a target character; flags clips some
+- `LpcAnimationPreview.cs` (was LpcAnimationMenu; hidden by default, `startHidden`) — builds a button per available clip on a target character; flags clips some
   worn part can't draw (amber `*`) and reports hidden parts on click; auto-rebuilds when coverage
   changes. Pairs with `LpcClipPlayer`.
 

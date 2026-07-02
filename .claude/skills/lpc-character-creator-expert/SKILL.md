@@ -45,7 +45,7 @@ are **no Unity `.anim` AnimationClips**; the runtime flips `SpriteRenderer.sprit
 
 - `Runtime/` (MIT) — the clip system, character, animator, builder, body types, categories, recolor,
   credits, slice math. `Editor/` — importer, auto-slicing postprocessor, credits reader, art importer.
-  `Samples/` — `LpcAnimationMenu` (UI, needs `UnityEngine.UI`).
+  `Samples/` — `LpcAnimationPreview` (UI, needs `UnityEngine.UI`; a dev tool, hidden by default via `startHidden`).
 - `Tests/` — **shared** NUnit tests (offline + Unity) at the root; `Tests/Integration/` is **Unity-only**
   (real GameObjects/Sprites); `Tests~/` is the **offline `dotnet`** project (hidden from Unity by the `~`).
 - Full file/architecture map: **`references/architecture.md`**.

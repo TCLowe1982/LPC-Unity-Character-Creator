@@ -48,7 +48,7 @@ shades, maps by luminance to the target ramp, and re-slices; textures must be re
 A part may lack some animations (the formal shirt has only 6/15 — no jump/climb/run/…). Policy:
 **keep all animations available, surface the gaps.**
 - `LpcLayerSet.SupportedClips/MissingClips`, `LpcCharacter.SlotsMissingClip(clip)` expose coverage.
-- `LpcAnimationMenu` flags clips some worn part can't draw (amber `*`) and, on click, reports
+- `LpcAnimationPreview` (hidden by default in consuming projects; `startHidden`/`Show()`) flags clips some worn part can't draw (amber `*`) and, on click, reports
   `"jump": hidden (no jump art): torso`.
 - `AppearanceSelector` appends `(6/15 anims)` to an incomplete part's label.
 

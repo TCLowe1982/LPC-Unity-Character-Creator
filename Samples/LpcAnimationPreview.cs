@@ -5,23 +5,32 @@ using UnityEngine.UI;
 namespace Lpc.Samples
 {
     /// <summary>
-    /// Builds a vertical column of buttons — one per animation the target character has — that
-    /// play that clip on an <see cref="LpcClipPlayer"/>. Drop it on a UI panel (e.g. left of a
-    /// character-preview frame) and assign the player; it populates itself from the character's
-    /// available clips and re-syncs on part swaps.
+    /// Animation PREVIEW panel (was LpcAnimationMenu): a vertical column of buttons — one per
+    /// animation the target character has — that play that clip on an
+    /// <see cref="LpcClipPlayer"/>. Drop it on a UI panel (e.g. left of a character-preview
+    /// frame) and assign the player; it populates itself from the character's available clips
+    /// and re-syncs on part swaps.
+    ///
+    /// This is a package-dev testing tool, so it stays HIDDEN by default in consuming
+    /// projects: with <see cref="startHidden"/> (the default) the panel deactivates itself on
+    /// Start and only appears when explicitly opened via <see cref="Show"/>/<see cref="Toggle"/>
+    /// (it builds itself on activation). Untick startHidden for a dev/preview scene.
     ///
     /// Coverage transparency: an animation that some worn part can't draw (e.g. the formal
     /// shirt has no jump sheet) is shown but FLAGGED (amber + "*"), and clicking it reports
     /// which worn parts will animate and which will be hidden — so nothing silently vanishes.
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
-    public class LpcAnimationMenu : MonoBehaviour
+    public class LpcAnimationPreview : MonoBehaviour
     {
         [Tooltip("Preview driver the buttons control.")]
         public LpcClipPlayer player;
 
         [Tooltip("Character whose available clips drive the menu. Defaults to the player's character.")]
         public LpcCharacter character;
+
+        [Tooltip("Dev/preview tool: keep hidden in consuming projects until Show()/Toggle() is called. Untick for a dev scene that wants the panel open on play.")]
+        public bool startHidden = true;
 
         public float buttonHeight = 40f;
         public int fontSize = 20;
@@ -31,7 +40,20 @@ namespace Lpc.Samples
         string _signature;
         Text status;
 
-        void Start() => Build();
+        void Start()
+        {
+            if (startHidden) { gameObject.SetActive(false); return; }
+            Build();
+        }
+
+        /// <summary>Open the preview panel (it builds/re-syncs itself on activation).</summary>
+        public void Show() => gameObject.SetActive(true);
+
+        /// <summary>Hide the preview panel.</summary>
+        public void Hide() => gameObject.SetActive(false);
+
+        /// <summary>Toggle the preview panel.</summary>
+        public void Toggle() => gameObject.SetActive(!gameObject.activeSelf);
 
         // Rebuild when the set of available clips changes — covers the character being built
         // after this menu's Start (script-order races) and live part swaps changing coverage.
