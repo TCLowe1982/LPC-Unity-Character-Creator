@@ -27,6 +27,8 @@ live, and recolor via palettes.
   coverage. A package-dev tool: hidden by default (`startHidden`); open it with `Show()`/`Toggle()`.
   `LpcDemoCreator` + **Tools/LPC/Create Demo Scene**: generates a mini character-creation scene from
   the imported catalog (slot cycling, body type, hair recolor, live animation preview).
+- **Docs** — the full maintainer/expert guide (architecture, art pipeline & licensing, workflow) lives
+  in [`Documentation~/expert-guide/`](Documentation~/expert-guide/README.md).
 
 ## Why selective import
 

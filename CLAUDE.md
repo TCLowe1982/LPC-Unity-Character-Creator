@@ -50,8 +50,9 @@ bd close <id>         # Complete work
 <!-- END BEADS INTEGRATION -->
 
 
-> **Deep context for AI agents lives in the skill** `.claude/skills/lpc-character-creator-expert/`
-> (SKILL.md + references/). Read it first when working on this repo.
+> **Deep context for AI agents lives in** `Documentation~/expert-guide/` (model-agnostic, generated from a
+> full-repo Ledger Pattern sweep), with the Claude-side wrapper at
+> `.claude/skills/lpc-character-creator-expert/SKILL.md`. Read them first when working on this repo.
 
 ## Build & Test
 
@@ -76,7 +77,7 @@ A layered LPC character = a stack of `SpriteRenderer` layers driven to the same 
 each tick. **Animations are code-driven — no Unity `.anim` clips.** Pure arithmetic lives in Runtime
 statics (`LpcClipMath`, `LpcSliceMath`, `LpcBodyType`, `LpcCategory`, `LpcCredits`) so it unit-tests
 offline. The Editor auto-slices imported LPC sheets into `LpcLayerSet.clips`; the runtime indexes
-`dir*framesPerDir + frame` per the active clip. Full map: the skill's `references/architecture.md`.
+`dir*framesPerDir + frame` per the active clip. Full map: `Documentation~/expert-guide/architecture.md`.
 
 ## Conventions & Patterns
 
@@ -88,5 +89,5 @@ offline. The Editor auto-slices imported LPC sheets into `LpcLayerSet.clips`; th
 - **Recolor across ALL clips** (`RecolorClips`/`SetLayerClips`), not just walk.
 - Multi-line commit messages: **`git commit -F <file>`** (PowerShell here-strings break on quotes/`*`).
 - `.meta` files are committed (UPM). Don't run `OpenScene(Single)` scripts on unsaved scenes.
-- More gotchas (MCP bridge, scene editing, re-import staleness): the skill's
-  `references/workflow-and-conventions.md`.
+- More gotchas (MCP bridge, scene editing, re-import staleness):
+  `Documentation~/expert-guide/workflow-and-conventions.md`.
