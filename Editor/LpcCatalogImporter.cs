@@ -269,7 +269,7 @@ namespace Lpc.Editor
         /// sheet_definition and imported by <see cref="ImportDefLayers"/> at their own zPos.
         /// Returns null when the part has no sheet for this animation.
         /// </summary>
-        static string FindAnimSheet(string dir, string anim, string variant)
+        internal static string FindAnimSheet(string dir, string anim, string variant)
         {
             string p = dir + "/" + anim + ".png";
             if (File.Exists(p)) return p;

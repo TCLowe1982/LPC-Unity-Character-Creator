@@ -31,6 +31,16 @@ namespace Lpc.Editor
         readonly Dictionary<string, LpcPartOption> selectedOpt = new Dictionary<string, LpcPartOption>();
         Vector2 scroll;
 
+        // ---- live preview state (2g8.22): drawn straight from the SOURCE sheets, so the
+        //      combination can be seen before anything is imported --------------------------
+        string previewAnim = "walk";
+        int previewDir = 2;               // face south
+        bool previewPlay = true;
+        int previewBodyIdx;               // index into LpcBodyType.All
+        int lastPreviewFrame = -1;
+        readonly Dictionary<string, Texture2D> texCache = new Dictionary<string, Texture2D>();
+        Dictionary<string, int> zIndex;   // source -> zPos from sheet_definitions (lazy)
+
         [MenuItem("Tools/LPC/Catalog Window")]
         public static void Open() => GetWindow<LpcCatalogWindow>("LPC Catalog");
 
@@ -46,6 +56,22 @@ namespace Lpc.Editor
                 catch { /* ignore a malformed manifest */ }
             }
             sheetsRoot = LpcSourceScanner.ResolveSpritesheets(sourcePath);
+            EditorApplication.update += OnPreviewTick;
+        }
+
+        void OnDisable()
+        {
+            EditorApplication.update -= OnPreviewTick;
+            ClearTexCache();
+        }
+
+        // repaint only when the shown frame advances, at the previewed clip's own fps
+        void OnPreviewTick()
+        {
+            if (!previewPlay || selected.Count == 0) return;
+            var clip = LpcClips.Get(previewAnim);
+            int f = LpcPreviewMath.FrameAt(EditorApplication.timeSinceStartup, clip.fps, clip.framesPerDir);
+            if (f != lastPreviewFrame) { lastPreviewFrame = f; Repaint(); }
         }
 
         void OnGUI()
@@ -90,6 +116,8 @@ namespace Lpc.Editor
                 }
                 EditorGUILayout.EndHorizontal();
             }
+
+            DrawPreview();
 
             EditorGUILayout.Space();
             scroll = EditorGUILayout.BeginScrollView(scroll);
@@ -149,7 +177,123 @@ namespace Lpc.Editor
         {
             sheetsRoot = LpcSourceScanner.ResolveSpritesheets(sourcePath);
             scanned.Clear(); catFoldout.Clear();
+            zIndex = null; ClearTexCache();
             status = sheetsRoot != null ? "Found spritesheets/. Expand a category to browse parts." : "spritesheets/ not found at that path.";
+        }
+
+        // ---- live preview (2g8.22) ------------------------------------------------------
+
+        void DrawPreview()
+        {
+            if (selected.Count == 0) return;
+            EditorGUILayout.Space();
+            EditorGUILayout.BeginHorizontal();
+
+            // the character sheet: every selected part's frame layered by zPos, all pivots
+            // anchored at one point — the same composition rule the runtime uses
+            var box = GUILayoutUtility.GetRect(200f, 210f, GUILayout.Width(200f));
+            EditorGUI.DrawRect(box, new Color(0.15f, 0.15f, 0.18f, 1f));
+            var clip = LpcClips.Get(previewAnim);
+            int frame = previewPlay
+                ? LpcPreviewMath.FrameAt(EditorApplication.timeSinceStartup, clip.fps, clip.framesPerDir)
+                : 0;
+            string previewBody = LpcBodyType.All[Mathf.Clamp(previewBodyIdx, 0, LpcBodyType.All.Length - 1)];
+
+            GUI.BeginGroup(box);   // clip oversize cells to the box
+            foreach (var part in SelectionByZ())
+            {
+                string sheet = ResolveSheet(part, previewBody, previewAnim);
+                if (sheet == null) continue;                       // part has no art for this clip: hide
+                var tex = LoadTex(sheet);
+                if (tex == null) continue;
+                if (!LpcSliceMath.TryCellSize(tex.width, tex.height, clip.framesPerDir, clip.directions, out int cw, out int ch2)) continue;
+                int dir = clip.directions == 1 ? 0 : previewDir;
+                var uv = LpcPreviewMath.FrameUV(clip.framesPerDir, clip.directions, dir, frame);
+                var dst = LpcPreviewMath.DestRect(cw, ch2, 2f, box.width / 2f, box.height - 36f);
+                GUI.DrawTextureWithTexCoords(dst, tex, uv);
+            }
+            GUI.EndGroup();
+
+            // controls
+            EditorGUILayout.BeginVertical();
+            var clipNames = new string[LpcClips.All.Length];
+            int clipIdx = 0;
+            for (int i = 0; i < LpcClips.All.Length; i++)
+            {
+                clipNames[i] = LpcClips.All[i].name;
+                if (clipNames[i] == previewAnim) clipIdx = i;
+            }
+            int newClip = EditorGUILayout.Popup("Animation", clipIdx, clipNames);
+            if (clipNames[newClip] != previewAnim) { previewAnim = clipNames[newClip]; lastPreviewFrame = -1; }
+
+            previewBodyIdx = EditorGUILayout.Popup("Body type", previewBodyIdx, LpcBodyType.All);
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel("Facing");
+            var dirNames = new[] { "N", "W", "S", "E" };
+            for (int d = 0; d < 4; d++)
+                if (GUILayout.Toggle(previewDir == d, dirNames[d], "Button", GUILayout.Width(32f)) && previewDir != d)
+                    previewDir = d;
+            EditorGUILayout.EndHorizontal();
+
+            previewPlay = EditorGUILayout.ToggleLeft("Animate", previewPlay);
+            EditorGUILayout.LabelField("Preview reads the source sheets directly —", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("nothing is imported until you press Import.", EditorStyles.miniLabel);
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        /// <summary>Selected parts ordered back-to-front by their sheet_definition zPos
+        /// (category default when a part has no definition).</summary>
+        List<LpcPartOption> SelectionByZ()
+        {
+            if (zIndex == null) zIndex = LpcSheetDefIndex.BuildZIndex(sourcePath);
+            var parts = new List<LpcPartOption>(selectedOpt.Values);
+            parts.Sort((a, b) =>
+            {
+                int za = zIndex.TryGetValue(a.source, out var ia) ? ia : LpcCategory.DefaultZ(a.category);
+                int zb = zIndex.TryGetValue(b.source, out var ib) ? ib : LpcCategory.DefaultZ(b.category);
+                return za != zb ? za.CompareTo(zb) : string.CompareOrdinal(a.source, b.source);
+            });
+            return parts;
+        }
+
+        /// <summary>Locate the part's source sheet for an animation, resolving the preview
+        /// body type against the variants the part actually has (with fallback).</summary>
+        string ResolveSheet(LpcPartOption part, string previewBody, string anim)
+        {
+            string dir = sheetsRoot + "/" + part.source;
+            if (part.bodyTypes.Count > 0)
+            {
+                string bt = LpcBodyType.Resolve(previewBody, part.bodyTypes) ?? part.bodyTypes[0];
+                dir += "/" + bt;
+            }
+            string variant = part.source.Substring(part.source.LastIndexOf('/') + 1);
+            return LpcCatalogImporter.FindAnimSheet(dir, anim, variant);
+        }
+
+        Texture2D LoadTex(string path)
+        {
+            if (texCache.TryGetValue(path, out var cached) && cached != null) return cached;
+            try
+            {
+                var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false)
+                {
+                    filterMode = FilterMode.Point,
+                    hideFlags = HideFlags.HideAndDontSave,
+                };
+                if (!tex.LoadImage(File.ReadAllBytes(path))) { Object.DestroyImmediate(tex); return null; }
+                texCache[path] = tex;
+                return tex;
+            }
+            catch { return null; }
+        }
+
+        void ClearTexCache()
+        {
+            foreach (var t in texCache.Values) if (t != null) Object.DestroyImmediate(t);
+            texCache.Clear();
         }
 
         void DrawStatus()

@@ -31,6 +31,7 @@
     <Compile Include="..\Runtime\LpcClipMath.cs"  Link="Runtime\LpcClipMath.cs" />
     <Compile Include="..\Runtime\LpcSliceMath.cs" Link="Runtime\LpcSliceMath.cs" />
     <Compile Include="..\Runtime\LpcCustomAnims.cs" Link="Runtime\LpcCustomAnims.cs" />
+    <Compile Include="..\Runtime\LpcPreviewMath.cs" Link="Runtime\LpcPreviewMath.cs" />
     <Compile Include="..\Runtime\LpcBodyType.cs"  Link="Runtime\LpcBodyType.cs" />
     <Compile Include="..\Runtime\LpcCategory.cs"  Link="Runtime\LpcCategory.cs" />
     <Compile Include="..\Runtime\LpcCredits.cs"   Link="Runtime\LpcCredits.cs" />

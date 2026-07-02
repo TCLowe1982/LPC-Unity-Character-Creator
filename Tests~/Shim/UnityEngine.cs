@@ -20,6 +20,14 @@ namespace UnityEngine
         public TooltipAttribute(string tooltip) { }
     }
 
+    /// <summary>Minimal Rect for the preview math (x/y/width/height only).</summary>
+    public struct Rect
+    {
+        public float x, y, width, height;
+        public Rect(float x, float y, float width, float height)
+        { this.x = x; this.y = y; this.width = width; this.height = height; }
+    }
+
     /// <summary>The integer/float helpers the clip math relies on.</summary>
     public static class Mathf
     {
