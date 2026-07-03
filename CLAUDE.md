@@ -85,7 +85,8 @@ offline. The Editor auto-slices imported LPC sheets into `LpcLayerSet.clips`; th
   MonoBehaviour/asset glue in `Tests/Integration/`.
 - Frame index = `dir * framesPerDir + frame`; each animation has its own grid (see `LpcClips`, 15 ULPC
   animations whose names match the on-disk PNG files).
-- A layer with no frames for the active clip **hides** (no stale pose); the UI surfaces coverage gaps.
+- A layer with no frames for the active clip **holds walk frame 0** (standing, same direction);
+  layers lacking walk too hide (no stale pose). The UI surfaces coverage gaps.
 - **Recolor across ALL clips** (`RecolorClips`/`SetLayerClips`), not just walk.
 - Multi-line commit messages: **`git commit -F <file>`** (PowerShell here-strings break on quotes/`*`).
 - `.meta` files are committed (UPM). Don't run `OpenScene(Single)` scripts on unsaved scenes.

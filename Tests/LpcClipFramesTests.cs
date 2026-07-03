@@ -56,5 +56,54 @@ namespace Lpc.Tests
             // empty per-animation walk entry shouldn't shadow the legacy fallback
             Assert.AreSame(legacy, LpcClipFrames.Resolve(clips, legacy, "walk"));
         }
+
+        // ---- ResolveWithFallback: missing clip degrades to the walk standing pose ------
+
+        [Test]
+        public void ResolveWithFallback_ClipPresent_NoFallback()
+        {
+            var slash = Frames(24);
+            var clips = new[]
+            {
+                new LpcClipFrames { clip = "walk",  frames = Frames(36) },
+                new LpcClipFrames { clip = "slash", frames = slash },
+            };
+            Assert.AreSame(slash, LpcClipFrames.ResolveWithFallback(clips, null, "slash", out bool fb));
+            Assert.IsFalse(fb);
+        }
+
+        [Test]
+        public void ResolveWithFallback_MissingClip_FallsBackToWalkFrames()
+        {
+            // a longsword ships walk+slash only: playing idle should hold the walk frames
+            var walk = Frames(36);
+            var clips = new[] { new LpcClipFrames { clip = "walk", frames = walk } };
+            Assert.AreSame(walk, LpcClipFrames.ResolveWithFallback(clips, null, "idle", out bool fb));
+            Assert.IsTrue(fb);
+        }
+
+        [Test]
+        public void ResolveWithFallback_MissingClip_FallsBackToLegacyWalkArray()
+        {
+            var legacy = Frames(36);
+            Assert.AreSame(legacy, LpcClipFrames.ResolveWithFallback(null, legacy, "jump", out bool fb));
+            Assert.IsTrue(fb);
+        }
+
+        [Test]
+        public void ResolveWithFallback_NoWalkEither_ReturnsNull()
+        {
+            var clips = new[] { new LpcClipFrames { clip = "slash", frames = Frames(24) } };
+            Assert.IsNull(LpcClipFrames.ResolveWithFallback(clips, null, "idle", out bool fb));
+            Assert.IsFalse(fb);
+        }
+
+        [Test]
+        public void ResolveWithFallback_WalkItselfMissing_ReturnsNull_NotFallback()
+        {
+            var clips = new[] { new LpcClipFrames { clip = "slash", frames = Frames(24) } };
+            Assert.IsNull(LpcClipFrames.ResolveWithFallback(clips, null, "walk", out bool fb));
+            Assert.IsFalse(fb);
+        }
     }
 }

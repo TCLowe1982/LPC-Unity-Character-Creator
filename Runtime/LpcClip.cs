@@ -126,5 +126,23 @@ namespace Lpc
                 return legacyWalk;
             return null;
         }
+
+        /// <summary>
+        /// Resolve like <see cref="Resolve"/>, but when the layer has no frames for the clip,
+        /// fall back to its WALK frames so partial ULPC coverage (e.g. a sword shipped with
+        /// combat animations only) degrades to holding a standing pose instead of hiding.
+        /// <paramref name="usedFallback"/> tells the caller the returned frames are walk's, so
+        /// poses must index walk's grid (<c>dir * walk.framesPerDir + 0</c>), not the active
+        /// clip's. Returns null when the layer lacks walk too (keep the hide behaviour).
+        /// </summary>
+        public static Sprite[] ResolveWithFallback(LpcClipFrames[] clips, Sprite[] legacyWalk, string clipName, out bool usedFallback)
+        {
+            usedFallback = false;
+            var f = Resolve(clips, legacyWalk, clipName);
+            if (f != null || clipName == LpcClips.Walk.name) return f;
+            f = Resolve(clips, legacyWalk, LpcClips.Walk.name);
+            usedFallback = f != null;
+            return f;
+        }
     }
 }

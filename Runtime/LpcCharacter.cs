@@ -30,14 +30,20 @@ namespace Lpc
 
             [System.NonSerialized] string activeClip;
             [System.NonSerialized] Sprite[] active;
+            [System.NonSerialized] bool activeIsFallback;
 
-            /// <summary>Resolve and cache this layer's frames for the given clip.</summary>
+            /// <summary>True when the cached frames are the walk-clip FALLBACK because this
+            /// layer has no frames for the active clip (pose on walk's grid, frame 0).</summary>
+            public bool ActiveIsFallback => activeIsFallback;
+
+            /// <summary>Resolve and cache this layer's frames for the given clip, falling
+            /// back to the walk frames (standing pose) when the clip is missing.</summary>
             public Sprite[] Activate(string clip)
             {
                 if (clip != activeClip)
                 {
                     activeClip = clip;
-                    active = LpcClipFrames.Resolve(clips, frames, clip);
+                    active = LpcClipFrames.ResolveWithFallback(clips, frames, clip, out activeIsFallback);
                 }
                 return active;
             }
@@ -66,7 +72,8 @@ namespace Lpc
             return false;
         }
 
-        /// <summary>Worn slots whose layer has no frames for this clip (they hide when it plays).</summary>
+        /// <summary>Worn slots whose layer has no frames for this clip (they hold a standing
+        /// walk frame while it plays — or hide, if walk is missing too).</summary>
         public List<string> SlotsMissingClip(string clip)
         {
             var miss = new List<string>();
@@ -96,9 +103,12 @@ namespace Lpc
             {
                 if (L == null || L.renderer == null) continue;
                 var f = L.Activate(curClip.name);
-                // A layer with no frames for this clip (e.g. a shirt that has no jump sheet)
-                // hides instead of showing a stale pose from the previous clip.
-                L.renderer.sprite = (f != null && i >= 0 && i < f.Length) ? f[i] : null;
+                // A layer with no frames for this clip (e.g. a sword with combat sheets only)
+                // holds walk frame 0 of the requested direction — the canonical standing
+                // pose — instead of popping out as the character starts/stops. Layers
+                // lacking walk too hide (no stale pose from the previous clip).
+                int idx = L.ActiveIsFallback ? LpcClipMath.PoseIndex(LpcClips.Walk, dir, 0, out _, out _) : i;
+                L.renderer.sprite = (f != null && idx >= 0 && idx < f.Length) ? f[idx] : null;
             }
         }
 

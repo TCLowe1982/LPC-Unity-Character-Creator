@@ -122,8 +122,9 @@ test source files.
 
 ## Design rules that shape every change
 
-- **Hide-on-missing-clip:** a layer with no frames for the active clip hides (`sprite = null`)
-  rather than showing a stale pose. **Coverage is surfaced, never restricted** — UI flags gaps
+- **Stand-in-on-missing-clip:** a layer with no frames for the active clip holds walk frame 0 of
+  the same direction (the standing pose); only a layer lacking walk too hides (`sprite = null`) —
+  never a stale pose. **Coverage is surfaced, never restricted** — UI flags gaps
   (`SupportedClips`/`MissingClips`/`SlotsMissingClip`, amber `*` in the preview, "(6/15 anims)"
   labels) instead of removing animations from the user's selection.
 - **Recolor across ALL clips** (`LpcRecolor.RecolorClips` + `LpcCharacter.SetLayerClips`), never

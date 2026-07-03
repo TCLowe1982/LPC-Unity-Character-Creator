@@ -121,7 +121,7 @@ namespace Lpc.Tests.Integration
         }
 
         [Test]
-        public void LayerMissingClip_HidesThatLayerInsteadOfShowingStalePose()
+        public void LayerMissingClip_FallsBackToStandingWalkFrame()
         {
             // body has walk + jump; torso (a shirt) has only walk — like a formal shirt with no jump sheet
             var body = ScriptableObject.CreateInstance<LpcLayerSet>(); temp.Add(body);
@@ -153,7 +153,82 @@ namespace Lpc.Tests.Integration
 
             c.Play(LpcClips.Get("jump")); c.SetPose(2, 2);
             Assert.IsNotNull(bodySr.sprite, "body has jump frames");
-            Assert.IsNull(torsoSr.sprite, "torso lacks jump -> hidden, not a stale walk frame");
+            // torso lacks jump: it must not vanish (equipment popping) NOR show a stale
+            // animated pose — it holds walk frame 0 of the same direction (standing south)
+            Assert.AreEqual(18, IndexOf(torsoWalk, torsoSr.sprite),
+                "torso lacks jump -> holds walk standing frame (dir 2 * 9 + 0)");
+        }
+
+        [Test]
+        public void LayerMissingClipAndWalk_StillHides()
+        {
+            var body = MakeBody();
+
+            // a trap effect with ONLY a slash sheet: nothing sensible to stand on
+            var fx = ScriptableObject.CreateInstance<LpcLayerSet>(); temp.Add(fx);
+            fx.slot = "fx"; fx.zOrder = 90;
+            fx.clips = new[] { new LpcClipFrames { clip = "slash", frames = MakeFrames(24, "fxslash") } };
+
+            var recipe = ScriptableObject.CreateInstance<LpcRecipe>(); temp.Add(recipe);
+            recipe.layers = new[] { body, fx };
+            go = new GameObject("LPC_TEST");
+            var c = LpcCharacterBuilder.Build(recipe, go);
+
+            SpriteRenderer fxSr = null;
+            foreach (var L in c.layers) if (L.name == "fx") fxSr = L.renderer;
+
+            c.Play(LpcClips.Get("jump")); c.SetPose(2, 2);
+            Assert.IsNull(fxSr.sprite, "no jump AND no walk -> hidden, not a stale pose");
+        }
+
+        [Test]
+        public void OneShotOnPartialLayer_EquipmentHoldsThroughStartAndStop()
+        {
+            // the reported bug: a guard's longsword ships walk+slash only; standing (idle)
+            // made the sword vanish. Drive the real animator through walk -> idle -> slash.
+            var body = ScriptableObject.CreateInstance<LpcLayerSet>(); temp.Add(body);
+            body.slot = "body"; body.zOrder = 0;
+            var bodyWalk = MakeFrames(36, "bodywalk");
+            body.frames = bodyWalk;
+            body.clips = new[]
+            {
+                new LpcClipFrames { clip = "walk", frames = bodyWalk },
+                new LpcClipFrames { clip = "idle", frames = MakeFrames(8, "bodyidle") }, // 2x4
+            };
+
+            var sword = ScriptableObject.CreateInstance<LpcLayerSet>(); temp.Add(sword);
+            sword.slot = "weapon"; sword.zOrder = 60;
+            var swordWalk = MakeFrames(36, "swordwalk");
+            sword.clips = new[]
+            {
+                new LpcClipFrames { clip = "walk",  frames = swordWalk },
+                new LpcClipFrames { clip = "slash", frames = MakeFrames(24, "swordslash") },
+            };
+
+            var recipe = ScriptableObject.CreateInstance<LpcRecipe>(); temp.Add(recipe);
+            recipe.layers = new[] { body, sword };
+            go = new GameObject("LPC_TEST");
+            var c = LpcCharacterBuilder.Build(recipe, go);
+            var a = go.AddComponent<LpcAnimator>();
+
+            SpriteRenderer swordSr = null;
+            foreach (var L in c.layers) if (L.name == "weapon") swordSr = L.renderer;
+
+            a.facing = new Vector2Int(0, -1); // south -> dir 2
+            a.walking = true;
+            a.Tick(0.125f);
+            Assert.IsNotNull(swordSr.sprite, "sword visible while walking");
+
+            a.walking = false; // body idles (has idle); sword lacks idle
+            a.Tick(0.125f);
+            Assert.AreEqual(18, IndexOf(swordWalk, swordSr.sprite),
+                "sword must hold its walk standing frame while the body idles, not vanish");
+
+            a.PlayOnce("slash");
+            a.Tick(0.01f);
+            int s = IndexOf(sword.clips[1].frames, swordSr.sprite);
+            Assert.GreaterOrEqual(s, 12, "sword animates its own slash frames (dir 2 row)");
+            Assert.LessOrEqual(s, 17);
         }
 
         [Test]

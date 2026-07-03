@@ -18,7 +18,8 @@ namespace Lpc.Samples
     ///
     /// Coverage transparency: an animation that some worn part can't draw (e.g. the formal
     /// shirt has no jump sheet) is shown but FLAGGED (amber + "*"), and clicking it reports
-    /// which worn parts will animate and which will be hidden — so nothing silently vanishes.
+    /// which worn parts animate and which hold their walk standing frame (or hide, if they
+    /// lack walk too) — so nothing silently degrades.
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
     public class LpcAnimationPreview : MonoBehaviour
@@ -163,7 +164,7 @@ namespace Lpc.Samples
             }
             else
             {
-                status.text = "\"" + clipName + "\": hidden (no " + clipName + " art): " + string.Join(", ", missing.ToArray()) + ".";
+                status.text = "\"" + clipName + "\": no " + clipName + " art (holds standing frame): " + string.Join(", ", missing.ToArray()) + ".";
                 status.color = flagColor;
             }
         }

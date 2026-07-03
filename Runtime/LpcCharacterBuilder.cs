@@ -7,8 +7,9 @@ namespace Lpc
     /// Constructs an <see cref="LpcCharacter"/> on a target GameObject from an
     /// <see cref="LpcRecipe"/>: one child SpriteRenderer per slot, ordered by zOrder. Each
     /// slot is resolved to the recipe body type's matching variant (see
-    /// <see cref="ResolveLayers"/>). Works in the editor and at runtime. Rebuilding clears
-    /// any previously built layer children.
+    /// <see cref="ResolveLayers"/>), then recolored onto the recipe's ramp for that slot if
+    /// one is set (<see cref="LpcRecipe.colors"/>). Works in the editor and at runtime.
+    /// Rebuilding clears any previously built layer children.
     /// </summary>
     public static class LpcCharacterBuilder
     {
@@ -86,7 +87,19 @@ namespace Lpc
                 go.transform.localScale = Vector3.one;
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sortingOrder = baseSortingOrder + i;
-                built[i] = new LpcCharacter.Layer { name = set.slot, zOrder = set.zOrder, renderer = sr, clips = set.clips, frames = set.frames };
+
+                // apply the recipe's palette for this slot (across ALL clips + the legacy
+                // walk sheet) so a recipe-built character keeps its colors on every animation
+                var clips = set.clips;
+                var frames = set.frames;
+                var ramp = recipe.RampFor(set.slot);
+                if (ramp != null)
+                {
+                    clips = LpcRecolor.RecolorClips(clips, ramp);
+                    frames = LpcRecolor.RecolorFrames(frames, ramp);
+                }
+
+                built[i] = new LpcCharacter.Layer { name = set.slot, zOrder = set.zOrder, renderer = sr, clips = clips, frames = frames };
             }
 
             lpc.layers = built;

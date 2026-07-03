@@ -47,8 +47,12 @@ PNG file names ("watering" is a tool overlay, deliberately excluded):
 `LpcClipFrames`: `clip` name + `frames` (Sprite[], flat index `dir*framesPerDir + frame`); a layer
 carries one per supported animation. Static `Resolve(clips, legacyWalk, clipName)` returns the
 first matching non-empty entry; falls back to the legacy flat walk array **only when clipName ==
-"walk"** (pre-2g8.8 imports); returns **null** when no frames exist — the hide-on-missing-clip
-signal. Null/empty entries are skipped (an empty "walk" entry doesn't shadow the legacy fallback).
+"walk"** (pre-2g8.8 imports); returns **null** when no frames exist. Null/empty entries are
+skipped (an empty "walk" entry doesn't shadow the legacy fallback).
+`ResolveWithFallback(clips, legacyWalk, clipName, out usedFallback)` layers the stand-in rule on
+top: a missing clip resolves to the layer's **walk** frames (`usedFallback = true`, pose on walk's
+grid at frame 0 — the standing pose) so partial ULPC coverage (a longsword with combat sheets
+only) doesn't pop equipment in and out; null only when walk is missing too — the hide signal.
 
 ### LpcCharacter.cs
 
@@ -58,16 +62,19 @@ exposed. Nested `Layer`: `name` (slot), `zOrder` (higher = front), `renderer`, `
 `frames`, plus a NonSerialized per-clip resolve cache (`Activate` memoizes, `Invalidate` clears).
 
 - `Play(clip | name)` — no-op if invalid; activates every layer, re-applies the pose.
-- `SetPose(dir, frame)` — `LpcClipMath.PoseIndex` clamps and persists dir/frame; each layer's
-  sprite is `f[i]` or **null when the layer has no frames for the clip** — a shirt with no jump
-  sheet hides instead of showing a stale pose (the core invariant).
+- `SetPose(dir, frame)` — `LpcClipMath.PoseIndex` clamps and persists dir/frame; a layer with no
+  frames for the clip **holds walk frame 0 of the requested direction** (the standing pose, via
+  `ResolveWithFallback` — `Layer.ActiveIsFallback` marks the cache) so equipment doesn't pop as
+  the character starts/stops; a layer lacking walk too gets **null** — hidden, never a stale
+  pose (the core invariant).
 - `SetLayer(LpcLayerSet)` — replace in place by slot, or create child `"LPC_"+slot` with a
   SpriteRenderer; then `ReSort()` + re-pose.
 - `SetLayerFrames(slot, frames)` — replaces the **active clip only** (legacy `frames` if active is
   walk and no per-clip entry matched). `SetLayerClips(slot, clips, legacyWalk=null)` — replaces
   **all** clips; recolor must use this so color holds on every animation, not just walk.
 - `RemoveLayer(slot)` — destroys the renderer GameObject (Destroy in play, DestroyImmediate else).
-- Coverage: `HasClip(clip)` (any layer has frames), `SlotsMissingClip(clip)` (slots that will hide).
+- Coverage: `HasClip(clip)` (any layer has frames), `SlotsMissingClip(clip)` (slots with no frames
+  for the clip — they hold the walk standing frame, or hide if walk is missing too).
 - `ReSort()` — sorts by zOrder ascending, `sortingOrder = baseSortingOrder + i`.
 
 ### LpcAnimator.cs — gameplay driver
@@ -132,7 +139,11 @@ lines). Reusable for an in-game credits screen.
   (36 = 9×4 walk). `FramesFor` via Resolve; `SupportedClips()`/`MissingClips()` against
   `LpcClips.All` in registry order.
 - **LpcRecipe** (ScriptableObject, menu `LPC/Recipe`): `bodyType` + `layers` pool (may hold several
-  body-type variants per slot). A character is data; swapping layers re-skins it.
+  body-type variants per slot) + `colors` (`SlotColor[]`: slot → target ramp; `RampFor(slot)`
+  returns the ramp or null, skipping empty entries). A character is data; swapping layers
+  re-skins it, and the builder recolors each slot with an entry across **all** clips + the legacy
+  walk array (`LpcRecolor.RecolorClips`/`RecolorFrames`) so recipe-built NPCs keep their palette
+  on every animation.
 - **LpcCharacterBuilder** (static, editor + runtime). `ResolveLayers(recipe)`: normalize body type,
   group pool by slot (first-seen slot order), pick each slot's variant via `LpcBodyType.Resolve`
   over the variants' normalized types (first variant matching the pick wins), **drop unsupported
@@ -336,8 +347,8 @@ always draw dir 0. Preview textures load with `HideAndDontSave` and are cached +
 - **LpcAnimationPreview** (formerly LpcAnimationMenu): one button per clip the character actually
   has (`Btn_<clipname>`, from `LpcClips.All` ∩ `HasClip`), driving a `LpcClipPlayer`. Coverage
   transparency: a clip some worn part can't draw still gets a button, flagged amber with a `*`
-  suffix; clicking reports exactly which slots hide (`SlotsMissingClip`) — nothing silently
-  vanishes. `Update()` rebuilds when a coverage `Signature` (per-clip missing-slot counts) changes,
+  suffix; clicking reports exactly which slots lack the clip's art and hold their standing frame
+  (`SlotsMissingClip`) — nothing silently degrades. `Update()` rebuilds when a coverage `Signature` (per-clip missing-slot counts) changes,
   covering script-order races and live part swaps. **`startHidden` defaults true** — it is a
   package-dev tool and stays invisible in consuming projects until `Show()`/`Toggle()`.
 
@@ -376,8 +387,9 @@ Split rule: `Tests/*.cs` = shared pure-logic tests compiled by both runners;
 `Tests/Integration/*.cs` = Unity-only (real GameObjects/Sprites/ScriptableObjects, filesystem,
 `Lpc.Editor` namespace) — the offline glob skips Integration while Unity's asmdef compiles it
 recursively. Integration coverage: the full animator pathway (built character +
-`LpcAnimator.Tick` → correct sprite on a live SpriteRenderer; hide-on-missing-clip; one-shot
-return-to-locomotion; direction rows), builder body-type resolution on real ScriptableObjects,
+`LpcAnimator.Tick` → correct sprite on a live SpriteRenderer; walk-standing fallback on missing
+clips (hide only when walk is missing too); one-shot return-to-locomotion; direction rows),
+builder body-type resolution on real ScriptableObjects, recipe `colors` recolor at build time,
 `LpcClipPlayer` frame-range confinement, coverage APIs, `RecolorClips` on real pixel data,
 `LpcCreditsReader` against a synthetic temp CSV, and sheet-def parsing/z-index against temp
 directory trees. When adding a pure Runtime file a shared test needs, add a `<Compile Include>`

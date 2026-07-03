@@ -166,13 +166,16 @@ independent dimensions — N styles + M ramps, not N×M pre-baked variants.
 A part may lack animations — the formal shirt has only 6/15 (no jump/climb/run/…). Policy: **keep
 every animation available and surface the gaps.**
 
-- Runtime rule: a layer with no frames for the active clip **hides** (`sprite = null`) instead of
-  showing a stale pose from the previous clip. `LpcClipFrames.Resolve` returning null is the signal.
+- Runtime rule: a layer with no frames for the active clip **falls back to its walk standing
+  frame** (walk frame 0, same direction — `LpcClipFrames.ResolveWithFallback`), so gear with
+  combat-only sheets doesn't pop in and out; a layer lacking walk too **hides** (`sprite = null`)
+  instead of showing a stale pose from the previous clip.
 - `LpcLayerSet.SupportedClips()` / `MissingClips()` and `LpcCharacter.HasClip` /
   `SlotsMissingClip(clip)` expose per-slot coverage.
 - `LpcAnimationPreview` (sample; hidden by default via `startHidden`, opened with
   `Show()`/`Toggle()`) flags clips some worn part can't draw with an amber `*` and reports on
-  click, e.g. `"jump": hidden (no jump art): torso`. It auto-rebuilds when coverage changes.
+  click, e.g. `"jump": no jump art (holds standing frame): torso`. It auto-rebuilds when
+  coverage changes.
 - The demo `AppearanceSelector` appends `(6/15 anims)` to an incomplete part's label.
 
 ## Selective importer, manifest & catalog layout

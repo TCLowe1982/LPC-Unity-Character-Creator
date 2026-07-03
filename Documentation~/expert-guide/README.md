@@ -22,8 +22,10 @@ commit that last regenerated it. When the code changes, update these docs in the
    9×4, hurt 6×1, shoot 13×4… Never assume a single 36-frame layout. Cell size is *derived*
    from the sheet (`width/cols × height/rows`), which is how oversize 128/192px weapon
    sheets slice on the same code path.
-3. **Layers hide when they lack the active clip** (sprite = null) instead of showing a stale
-   pose, and the UI *surfaces* coverage gaps rather than restricting animation choice.
+3. **Layers missing the active clip fall back to the walk standing frame** (walk frame 0 of
+   the same direction) so partial ULPC coverage doesn't pop equipment in and out; layers
+   lacking walk too hide (sprite = null) rather than show a stale pose. The UI *surfaces*
+   coverage gaps rather than restricting animation choice.
 4. **Oversize art centers the 64px body in the bigger cell**, so oversize sprites pivot at
    the embedded body baseline `(0.5, (cellH−64)/(2·cellH))` and line up with bottom-pivoted
    64px layers at the same transform position.
