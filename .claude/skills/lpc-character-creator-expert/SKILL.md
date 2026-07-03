@@ -13,11 +13,11 @@ description: >-
   LpcLayerSet/LpcRecipe/LpcCharacterBuilder), the editor importer/postprocessor/sheet-def parser,
   the Catalog Window, the Samples (LpcAnimationPreview, LpcDemoCreator), the tests, or the art
   bundle. Knows the core patterns (pure logic in Runtime so it unit-tests offline; per-animation
-  slicing with derived cell size; hide-on-missing-clip; recolor-across-all-clips; oversize
-  baseline pivots) and the workflow (beads, dual-runner tests, the Unity MCP bridge in Ultima4_2d,
-  commit/push). Triggers on: LPC, LpcCharacter, clip system, LpcAnimator, LpcLayerSet, body type,
-  recolor, catalog importer, auto-slice, oversize, sheet_definitions, character creator, art
-  bundle, CREDITS attribution.
+  slicing with derived cell size; standing-frame fallback on missing clips; recolor-across-all-clips
+  incl. recipe palette colors; oversize baseline pivots) and the workflow (beads, dual-runner tests,
+  the Unity MCP bridge in Ultima4_2d, commit/push). Triggers on: LPC, LpcCharacter, clip system,
+  LpcAnimator, LpcLayerSet, body type, recolor, recipe colors, SlotColor, catalog importer,
+  auto-slice, oversize, sheet_definitions, character creator, art bundle, CREDITS attribution.
 ---
 
 # LPC Unity Character Creator — Expert
@@ -32,6 +32,10 @@ hair, gear…) all driven to the **same (clip, direction, frame)** every frame. 
 > model-agnostic and single-sourced (generated from a full-repo Ledger Pattern sweep; regenerate
 > or hand-update it together with code changes). This file is the Claude-side wrapper: core
 > patterns + where to look.
+>
+> **Repo root: `D:\Projects\LPC-Unity-Character-Creator`.** If you loaded this skill from the
+> user-global skills directory (outside the repo), the relative links above/below won't resolve —
+> read the guide at `D:\Projects\LPC-Unity-Character-Creator\Documentation~\expert-guide\` instead.
 
 ## Core patterns — read first
 
@@ -51,10 +55,18 @@ hair, gear…) all driven to the **same (clip, direction, frame)** every frame. 
 3. **Per-animation frames per layer.** `LpcLayerSet.clips` is `LpcClipFrames[]`; legacy
    `frames` is the walk-only fallback — **never fill it with a non-walk clip** (Resolve plays
    legacy frames AS walk).
-4. **Hide-on-missing.** A layer with no frames for the active clip hides (sprite = null); the
-   UI surfaces coverage gaps (amber `*`, status line) instead of restricting.
+4. **Standing-frame fallback on missing clips.** A layer with no frames for the active clip
+   holds **walk frame 0 of the same direction** (the canonical standing pose, via
+   `LpcClipFrames.ResolveWithFallback` + `Layer.ActiveIsFallback` — poses index WALK's grid,
+   not the active clip's), so gear shipped with combat-only sheets (most ULPC weapons/shields)
+   doesn't pop in and out as the character starts/stops. Only a layer lacking walk too hides
+   (sprite = null) — never a stale pose. The UI surfaces coverage gaps (amber `*`, status
+   line) instead of restricting; `SlotsMissingClip` still reports missing coverage.
 5. **Recolor applies across ALL clips** (`LpcRecolor.RecolorClips` + `SetLayerClips`), or the
-   color only holds on walk.
+   color only holds on walk. **Recipes carry palette colors**: `LpcRecipe.colors`
+   (`SlotColor[]` slot → target ramp, `RampFor(slot)`); `LpcCharacterBuilder.Build` recolors
+   each chosen layer's clips + legacy walk array, so data-driven NPCs keep their colors on
+   every animation instead of wearing catalog defaults.
 6. **Def-driven multi-layer import.** A part whose sheet_definition has several layers (weapon
    fg/bg/oversize attacks, cape fg/bg) expands to one catalog entry per layer at the LAYER's
    zPos; secondary layers get sub-slots (`weapon_l2`…) because the runtime keys layers by slot.
